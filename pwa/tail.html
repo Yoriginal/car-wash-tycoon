@@ -1,0 +1,12 @@
+<script>
+// Service worker : jeu jouable hors ligne, mises à jour récupérées au lancement suivant
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController && window.__CWT) window.__CWT.toast('Nouvelle version téléchargée : elle sera active au prochain lancement.', 'good');
+  });
+}
+</script>
+</body>
+</html>
