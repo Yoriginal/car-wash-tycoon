@@ -44,6 +44,7 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     await pg.click('[data-test="slot-free"]');
     await pg.waitForTimeout(300);
     if (await pg.$('[data-test="type-hp"]')) { await pg.click('[data-test="type-hp"]'); await pg.waitForTimeout(200); }
+    await pg.click('[data-test="tier-0"]'); await pg.waitForTimeout(150);
     await pg.click('[data-test="buy-hp-0"]');
     await pg.waitForTimeout(300);
     const units = await pg.evaluate(() => __CWT.S.stations.A.units.length);
@@ -53,6 +54,24 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     const rev = await pg.evaluate(() => __CWT.S.totals.rev);
     ok(rev > 0, `première vente encaissée (${Math.round(rev)} €)`);
     await pg.screenshot({ path: join(root, 'build/ui-smoke.png') });
+
+    // 3. feuilles : prix au curseur, entretien, fiche équipement, fermeture en touchant le décor
+    await pg.click('[data-test="tool-prix"]'); await pg.waitForTimeout(300);
+    const d0 = await pg.evaluate(() => __CWT.S.d);
+    await pg.$eval('[data-test="prix-hp"]', el => { el.value = '7.5'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+    await pg.waitForTimeout(600);
+    const pr = await pg.evaluate(() => ({ p: __CWT.S.stations.A.prices.hp, d: __CWT.S.d }));
+    ok(pr.p === 7.5, 'prix réglé au curseur');
+    ok(pr.d === d0, 'temps en pause pendant la feuille');
+    await pg.mouse.click(195, 40); await pg.waitForTimeout(300);
+    ok(!(await pg.$('.sheet.feuille')), 'feuille fermée en touchant le décor');
+    await pg.click('[data-test="tool-entretien"]'); await pg.waitForTimeout(300);
+    await pg.click('[data-test="contrat-2"]'); await pg.waitForTimeout(200);
+    ok(await pg.evaluate(() => __CWT.S.stations.A.contract === 2), 'contrat d\'entretien choisi');
+    await pg.mouse.click(195, 40); await pg.waitForTimeout(300);
+    await pg.click('[data-test="unit-0"]'); await pg.waitForTimeout(300);
+    ok(!!(await pg.$('[data-test="revendre"]')), 'fiche équipement ouverte depuis le diorama');
+    await pg.screenshot({ path: join(root, 'build/ui-smoke-fiche.png') });
   } catch (e) { console.error('  ✗ ' + e.message); failed++; }
   finally { await browser.close(); srv.kill(); }
   ok(errors.length === 0, 'aucune erreur JavaScript' + (errors.length ? ' : ' + errors.slice(0, 3).join(' | ') : ''));

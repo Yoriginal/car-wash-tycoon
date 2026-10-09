@@ -114,7 +114,6 @@ function dialBind(el) {
 
 // outils de la Station (étape 2 : mènent à la section ; étape 4 : ouvrent une feuille)
 function toolOpen(id) {
-  const target = { prix: 'sec-prix', entretien: 'sec-entretien', equipe: 'sec-equipe', station: 'sec-station' }[id];
-  const el = document.getElementById(target);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (ui.tab !== 'station' || !S.stations[ui.lot]) return;
+  feuilleOpen(id, { lot: ui.lot });
 }

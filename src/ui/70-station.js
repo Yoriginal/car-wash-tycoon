@@ -6,7 +6,6 @@
 const ST = { POSTE_W: 86, POSTE_H: 108, X0: 14, ROOF_Y: 168, BAY_Y: 192, GROUND_Y: 300, LANE_Y: 330, H: 392 };
 const TIER_KEY = ['eco', 'pro', 'premium'];
 const TYPE_KEY = { portique: 'portique', hp: 'piste' };
-const PALIER_NOM = ['CHAMP', 'MAGASIN', 'ZONE D\'ACTIVITÉS', 'CENTRE COMMERCIAL', 'PÔLE PÉRI-URBAIN'];
 const SCENE_CARS = ['#C8435F', '#3E8E86', '#E0A631', '#5C7FA6', '#B9BEC1', '#E9E4D8', '#3A3F44'];
 
 // silhouette de voiture du kit (64 × 26), couleur au choix
@@ -112,7 +111,7 @@ function stationSceneSvg(lotId) {
   return `<svg class="diorama2" viewBox="0 0 ${W} ${ST.H}" width="${W}" height="${ST.H}" role="img" aria-label="Station ${escSvg(E.lotDef(lotId).name)}">
     <rect width="${W}" height="${ST.GROUND_Y}" fill="${night ? '#2B3440' : '#E4EFEC'}"/>
     ${night ? Array.from({ length: 18 }, (_, j) => `<circle cx="${(j * 89 + 23) % W}" cy="${(j * 37) % 120 + 8}" r="1" fill="#F4F0E6" opacity=".7"/>`).join('') : `<g fill="#fff" opacity=".9"><ellipse cx="${W - 120}" cy="30" rx="26" ry="9"/><ellipse cx="${W - 98}" cy="24" rx="16" ry="9"/><ellipse cx="210" cy="52" rx="20" ry="7"/></g>`}
-    <text x="${W - 14}" y="22" text-anchor="end" font-family="Barlow Condensed" font-weight="700" font-size="11" letter-spacing="1.6" fill="${night ? '#C9CED1' : '#6A7276'}">PALIER ${z.stage + 1} · ${PALIER_NOM[z.stage]}</text>
+    <text x="${W - 14}" y="22" text-anchor="end" font-family="Barlow Condensed" font-weight="700" font-size="11" letter-spacing="1.6" fill="${night ? '#C9CED1' : '#6A7276'}">PALIER ${z.stage + 1} · ${escSvg(E.STAGES[z.stage].n.toUpperCase())}</text>
     <rect x="0" y="${ST.ROOF_Y - 4}" width="${W}" height="${ST.GROUND_Y - ST.ROOF_Y}" fill="${night ? '#3A4552' : '#D3E2DA'}"/>
     <g transform="translate(${W - 160},${ST.ROOF_Y - 4 - 96})">${innerSvg(sprite('monde/zone_palier_' + (z.stage + 1)))}</g>
     <rect x="0" y="${ST.GROUND_Y - 8}" width="${W}" height="${ST.H - ST.GROUND_Y + 8}" fill="#D9D3C7"/>
@@ -167,21 +166,16 @@ function stationLive() {
   if (k) { set(k, 'served', st.day.served); set(k, 'lost', st.day.lost); set(k, 'queue', `${st.q.portique + st.q.hp}/${E.qmaxOf(st)}`); set(k, 'rev', fmt(st.day.rev)); }
 }
 
-// objets touchés dans la scène (étape 3 : renvoient vers les réglages existants)
+// objets touchés dans la scène : chacun ouvre son panneau
 function stationAct(a, el) {
-  const lotId = ui.lot;
+  const lot = ui.lot;
   switch (a) {
-    case 'slot': sheetAddUnit(lotId); return true;
-    case 'unit': { const line = document.getElementById('unit-line-' + el.dataset.i); if (line) line.scrollIntoView({ behavior: 'smooth', block: 'center' }); return true; }
-    case 'enseigne': toolOpen('prix'); return true;
-    case 'file': {
-      const st = S.stations[lotId];
-      const lost7 = st.hist.slice(-7).reduce((s, h) => s + h.lost, 0);
-      toast(lost7 ? `${lost7} clients perdus en 7 jours : monte le prix ou ajoute un équipement.` : 'La file s\'écoule bien : aucun client perdu cette semaine.', lost7 ? 'bad' : 'good');
-      return true;
-    }
-    case 'offre': toolOpen('station'); return true;
-    case 'employe': toolOpen('equipe'); return true;
+    case 'slot': feuilleOpen('catalogue', { lot, type: null, tier: null }); return true;
+    case 'unit': feuilleOpen('unite', { lot, i: +el.dataset.i }); return true;
+    case 'enseigne': feuilleOpen('prix', { lot }); return true;
+    case 'file': feuilleOpen('file', { lot }); return true;
+    case 'offre': feuilleOpen('station', { lot }); return true;
+    case 'employe': feuilleOpen('equipe', { lot }); return true;
   }
   return false;
 }

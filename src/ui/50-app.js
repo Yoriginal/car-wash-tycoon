@@ -311,86 +311,13 @@
     const l = E.lotDef(lotId), z = E.zoneOf(S, lotId);
     const h = last(st, 30);
     const rev30 = sum(h, x => x.rev), net30 = rev30 - sum(h, x => x.cost);
-    const free = E.freeSlots(st);
-    const types = E.TYPES.filter(t => st.units.some(u => u.type === t));
-    let html = `<button class="back" data-act="tab" data-tab="stations">← Mes stations</button>
-      <div class="view-title"><h2>${esc(l.name)}</h2></div>
-      <div class="row wrap" style="margin:-4px 0 12px">${stageChip(lotId)}<span class="chip">Valeur ${kfmt(E.stationValue(S, lotId))}</span><span class="chip">${E.usedSlots(st)}/${E.slotsOf(st)} empl. · file ${E.qmaxOf(st)}</span></div>
+    let html = `<h2 class="station-titre">${esc(l.name)}</h2>
       ${stationViewHtml(lotId)}
       <p class="sub" style="margin:8px 0 0">30 derniers jours : CA ${fmt(rev30)} · résultat ${fmt(net30)} · ${sum(h, x => x.lost)} clients perdus</p>`;
-    // offres
-    for (const o of S.offers.filter(o => o.lot === lotId)) {
-      html += `<div class="card" style="margin-top:12px;border-color:var(--mustard)"><b>La parcelle voisine se libère</b><p class="sub" style="margin:4px 0 10px">+${o.slots} emplacements et +${o.q} places de file. Offre valable jusqu'au jour ${o.until}.</p><button class="btn small" data-act="offer" data-id="${o.id}" ${S.cash < o.price ? 'disabled' : ''}>Racheter · <span class="price">${fmt(o.price)}</span></button></div>`;
-    }
-    // équipements
-    html += `<h3>Équipements</h3><div class="stack">`;
-    st.units.forEach((u, i) => {
-      const t = E.EQUIP[u.type].tiers[u.tier];
-      const lifeLeft = t.life - u.age / 365;
-      const state = u.down > 0 ? `<span class="chip bad">En panne · ${Math.ceil(u.down / 24)} j</span>` : lifeLeft < t.life * 0.15 ? '<span class="chip warn">Fin de vie</span>' : '<span class="chip good">OK</span>';
-      const key = 'sell-' + i;
-      html += `<div class="unit" id="unit-line-${i}"><span class="ico">${ICON[u.type]}</span><span class="grow"><span class="nm">${E.EQUIP[u.type].name} ${t.n}</span><div class="meta">${t.cap} lavages/h · ${(u.age / 365).toFixed(1).replace('.', ',')} an / ${t.life} ans</div></span>
-        <span style="display:grid;gap:6px;justify-items:end">${state}${ui.confirm === key
-          ? `<span class="confirm"><button class="btn danger small" data-act="sell-unit" data-i="${i}">Revendre ${fmt(E.unitResale(u))}</button><button class="btn ghost small" data-act="cancel">Non</button></span>`
-          : `<button class="btn ghost small" data-act="ask" data-key="${key}">Revendre</button>`}</span></div>`;
-    });
-    if (free > 0) html += `<button class="add-slot" data-act="add-unit" data-lot="${lotId}">+ Ajouter un équipement · ${free} emplacement${free > 1 ? 's' : ''} libre${free > 1 ? 's' : ''}</button>`;
-    html += `</div>`;
-    // prix
-    if (types.length) {
-      html += `<h3 id="sec-prix">Prix des programmes</h3><div class="stack">`;
-      for (const t of types) {
-        const ref = E.refPrice(S, lotId, t);
-        const pf = E.priceFactor(st.prices[t], ref);
-        html += `<div class="card price-row"><div><b>${E.EQUIP[t].name}</b><div class="sub">Réf. de la zone ${euro(ref)} · attractivité <span data-live="pf-${t}">${Math.round(pf * 100)}</span> %</div></div>
-          <div class="stepper"><button data-act="price" data-t="${t}" data-d="-0.5" aria-label="Baisser le prix">−</button><span class="val" data-live="price-${t}">${euro(st.prices[t])}</span><button data-act="price" data-t="${t}" data-d="0.5" aria-label="Monter le prix">+</button></div></div>`;
-      }
-      html += `</div><p class="sub" style="margin:8px 0 0">Prix libre de 1 à 40 €. File saturée ? Monte le prix. Station vide ? Baisse-le.</p>`;
-    }
-    // chimie
-    html += `<h3 id="sec-entretien">Chimie</h3><div class="seg">${E.CHEM.map((c, i) => `<button data-act="chem" data-v="${i}" aria-pressed="${st.chem === i}">${c.n}<small>${i ? '+15 % d\'attractivité, coût par lavage plus élevé' : 'Qualité correcte'}</small></button>`).join('')}</div>`;
-    // contrat
-    html += `<h3>Contrat de maintenance</h3><div class="seg">${E.CONTRACTS.map((c, i) => `<button data-act="contract" data-v="${i}" aria-pressed="${st.contract === i}">${c.n}<small>${c.delay} j · ${c.perUnitDay ? fmt(c.perUnitDay * E.usedSlots(st) * 30) + '/mois' : 'à la panne'}</small></button>`).join('')}</div>
-      <p class="sub" style="margin:8px 0 0">${esc(E.CONTRACTS[st.contract].desc)}. Délai d'intervention ${E.CONTRACTS[st.contract].delay} jour${E.CONTRACTS[st.contract].delay > 1 ? 's' : ''}.</p>`;
-    // personnel
-    html += `<h3 id="sec-equipe">Personnel</h3>`;
-    if (st.staff) {
-      const e = S.staff.find(x => x.id === st.staff);
-      const bonus = Math.round(E.staffBonus(S, st) * 100);
-      html += `<div class="card row between"><span><b>${esc(e.name)}</b><div class="sub">+${bonus} % de CA · couvre ${e.stations.length} station${e.stations.length > 1 ? 's' : ''}</div></span><button class="btn ghost small" data-act="unassign" data-lot="${lotId}">Retirer</button></div>`;
-    } else {
-      const sec = E.sectorOfLot(lotId);
-      const avail = S.staff.filter(e => e.stations.length < 3 && (!e.stations.length || e.stations.every(x => E.sectorOfLot(x) === sec)));
-      html += `<div class="card"><p class="sub" style="margin:0 0 10px">Un employé dédié : +20 % de CA pour ${fmt(E.STAFF_DAY)} par jour. Partagé sur 2 stations du même secteur : +15 % chacune, sur 3 : +10 %.</p>
-        <div class="row wrap"><button class="btn small" data-act="hire-assign" data-lot="${lotId}">Embaucher</button>${avail.map(e => `<button class="btn ghost small" data-act="assign" data-emp="${e.id}" data-lot="${lotId}">Partager ${esc(e.name)} (${e.stations.length}/3)</button>`).join('')}</div></div>`;
-    }
-    // vente
-    html += `<h3 id="sec-station">Revente</h3>`;
-    if (ui.confirm === 'sell-station') html += `<div class="confirm"><button class="btn danger" data-act="sell-station" data-lot="${lotId}">Confirmer la vente · ${fmt(E.stationValue(S, lotId))}</button><button class="btn ghost" data-act="cancel">Annuler</button></div>`;
-    else html += `<button class="btn ghost" data-act="ask" data-key="sell-station">Vendre la station · ${fmt(E.stationValue(S, lotId))}</button>`;
     return html;
   }
 
-  function sheetAddUnit(lotId, type) {
-    const st = S.stations[lotId];
-    type = type || (E.freeSlots(st) >= 2 && !st.units.some(u => u.type === 'portique') ? 'portique' : 'hp');
-    const e = E.EQUIP[type];
-    const free = E.freeSlots(st);
-    let html = `<h2>Ajouter un équipement</h2><p class="sub" style="margin:4px 0 12px">${free} emplacement${free > 1 ? 's' : ''} libre${free > 1 ? 's' : ''} · trésorerie ${fmt(S.cash)}</p>
-      <div class="seg" style="margin-bottom:12px">${E.TYPES.map(t => `<button data-act="unit-type" data-test="type-${t}" data-t="${t}" data-lot="${lotId}" aria-pressed="${t === type}">${E.EQUIP[t].name}<small>${E.EQUIP[t].slots} emplacement${E.EQUIP[t].slots > 1 ? 's' : ''}</small></button>`).join('')}</div>
-      <div class="tiers">`;
-    e.tiers.forEach((t, i) => {
-      const can = free >= e.slots && S.cash >= t.price;
-      html += `<div class="card tier"><span><b>${e.name} ${t.n}</b></span>
-        <button class="btn small ${i === 1 ? '' : 'turq'}" data-act="buy-unit" data-test="buy-${type}-${i}" data-lot="${lotId}" data-t="${type}" data-tier="${i}" ${can ? '' : 'disabled'}><span class="price">${fmt(t.price)}</span></button>
-        <div class="stats"><span><b>${t.cap}</b> lavages/h</span><span>attractivité <b>×${String(t.attr).replace('.', ',')}</b></span><span><b>${t.fail}</b> pannes/an</span><span><b>${t.life}</b> ans</span></div></div>`;
-    });
-    html += `</div>`;
-    if (free < e.slots) html += `<p class="sub">Un ${e.name.toLowerCase()} demande ${e.slots} emplacements.</p>`;
-    else if (S.cash < e.tiers[0].price) html += `<p class="sub">Trésorerie insuffisante : passe par la banque dans Finances.</p>`;
-    html += `<p class="sub">Prix de référence ${euro(E.refPrice(S, lotId, type))} dans cette zone. Coût variable ${e.varCost.toFixed(2).replace('.', ',')} € par lavage.</p>`;
-    openSheet(html);
-  }
+  function sheetAddUnit(lotId, type) { feuilleOpen('catalogue', { lot: lotId, type: type || null, tier: type ? catalogueDefautTier(type) : null }); }
 
   // ---------------- vue finances ----------------
   function viewFinances() {
@@ -498,8 +425,9 @@
     if (!ui.sheet) { ui.wasPaused = paused; paused = true; }
     ui.sheet = true;
     const bd = $('#backdrop');
+    if (!opts.feuille) ui.f = null;
     bd.className = 'backdrop' + (opts.center ? ' modal-center' : '');
-    bd.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${opts.center ? '' : '<div class="grab"></div>'}${html}${opts.noClose ? '' : '<button class="btn ghost block" style="margin-top:12px" data-act="close">Fermer</button>'}</div>`;
+    bd.innerHTML = `<div class="sheet${opts.feuille ? ' feuille' : ''}${opts.still ? ' still' : ''}" role="dialog" aria-modal="true">${opts.center ? '' : '<div class="grab"></div>'}${html}${opts.noClose || opts.feuille ? '' : '<button class="btn ghost block" style="margin-top:12px" data-act="close">Fermer</button>'}</div>`;
     bd.hidden = false;
     renderSpeed();
   }
@@ -507,7 +435,7 @@
     const bd = $('#backdrop');
     if (!ui.sheet) return;
     bd.hidden = true; bd.innerHTML = '';
-    ui.sheet = null;
+    ui.sheet = null; ui.f = null;
     paused = ui.wasPaused;
     if (!silent) renderAll();
   }
@@ -793,6 +721,8 @@
       if (fog) { sheetFog(+fog.dataset.sector); return; }
       const pin = e.target.closest('.pin, .lot-row');
       if (pin) { sheetLot(pin.dataset.lot); return; }
+      const fa = e.target.closest('[data-fa]');
+      if (fa && !fa.disabled) { feuilleAct(fa.dataset.fa, fa); return; }
       const sa = e.target.closest('[data-sa]');
       if (sa && ui.tab === 'station' && stationAct(sa.dataset.sa, sa)) return;
       const a = e.target.closest('[data-act]');
