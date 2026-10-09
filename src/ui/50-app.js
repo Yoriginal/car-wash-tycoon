@@ -124,8 +124,7 @@
     else if (ui.tab === 'finances') m.innerHTML = viewFinances();
     else m.innerHTML = viewJournal();
     m.scrollTop = keep;
-    if (ui.tab === 'station') Dio.attach($('#dio'), ui.lot);
-    else Dio.detach();
+    Dio.detach();
     if (ui.tab === 'finances') bindLoan();
     liveUpdate();
   }
@@ -317,13 +316,7 @@
     let html = `<button class="back" data-act="tab" data-tab="stations">← Mes stations</button>
       <div class="view-title"><h2>${esc(l.name)}</h2></div>
       <div class="row wrap" style="margin:-4px 0 12px">${stageChip(lotId)}<span class="chip">Valeur ${kfmt(E.stationValue(S, lotId))}</span><span class="chip">${E.usedSlots(st)}/${E.slotsOf(st)} empl. · file ${E.qmaxOf(st)}</span></div>
-      <canvas id="dio" class="diorama" aria-label="Vue animée de la station"></canvas>
-      <div class="kpis">
-        <div class="kpi"><div class="v" data-live="served">0</div><div class="l">Servis</div></div>
-        <div class="kpi"><div class="v lost" data-live="lost">0</div><div class="l">Perdus</div></div>
-        <div class="kpi"><div class="v" data-live="queue">0</div><div class="l">File</div></div>
-        <div class="kpi"><div class="v money" data-live="rev">0</div><div class="l">CA du jour</div></div>
-      </div>
+      ${stationViewHtml(lotId)}
       <p class="sub" style="margin:8px 0 0">30 derniers jours : CA ${fmt(rev30)} · résultat ${fmt(net30)} · ${sum(h, x => x.lost)} clients perdus</p>`;
     // offres
     for (const o of S.offers.filter(o => o.lot === lotId)) {
@@ -336,12 +329,12 @@
       const lifeLeft = t.life - u.age / 365;
       const state = u.down > 0 ? `<span class="chip bad">En panne · ${Math.ceil(u.down / 24)} j</span>` : lifeLeft < t.life * 0.15 ? '<span class="chip warn">Fin de vie</span>' : '<span class="chip good">OK</span>';
       const key = 'sell-' + i;
-      html += `<div class="unit"><span class="ico">${ICON[u.type]}</span><span class="grow"><span class="nm">${E.EQUIP[u.type].name} ${t.n}</span><div class="meta">${t.cap} lavages/h · ${(u.age / 365).toFixed(1).replace('.', ',')} an / ${t.life} ans</div></span>
+      html += `<div class="unit" id="unit-line-${i}"><span class="ico">${ICON[u.type]}</span><span class="grow"><span class="nm">${E.EQUIP[u.type].name} ${t.n}</span><div class="meta">${t.cap} lavages/h · ${(u.age / 365).toFixed(1).replace('.', ',')} an / ${t.life} ans</div></span>
         <span style="display:grid;gap:6px;justify-items:end">${state}${ui.confirm === key
           ? `<span class="confirm"><button class="btn danger small" data-act="sell-unit" data-i="${i}">Revendre ${fmt(E.unitResale(u))}</button><button class="btn ghost small" data-act="cancel">Non</button></span>`
           : `<button class="btn ghost small" data-act="ask" data-key="${key}">Revendre</button>`}</span></div>`;
     });
-    if (free > 0) html += `<button class="add-slot" data-test="slot-free" data-act="add-unit" data-lot="${lotId}">+ Ajouter un équipement · ${free} emplacement${free > 1 ? 's' : ''} libre${free > 1 ? 's' : ''}</button>`;
+    if (free > 0) html += `<button class="add-slot" data-act="add-unit" data-lot="${lotId}">+ Ajouter un équipement · ${free} emplacement${free > 1 ? 's' : ''} libre${free > 1 ? 's' : ''}</button>`;
     html += `</div>`;
     // prix
     if (types.length) {
@@ -487,10 +480,7 @@
     const m = $('main');
     if (ui.tab === 'station') {
       const st = S.stations[ui.lot]; if (!st) return;
-      set(m, 'served', st.day.served);
-      set(m, 'lost', st.day.lost);
-      set(m, 'queue', `${st.q.portique + st.q.hp}/${E.qmaxOf(st)}`);
-      set(m, 'rev', fmt(st.day.rev));
+      stationLive();
       for (const t of E.TYPES) { set(m, 'price-' + t, euro(st.prices[t])); set(m, 'pf-' + t, Math.round(E.priceFactor(st.prices[t], E.refPrice(S, ui.lot, t)) * 100)); }
     } else if (ui.tab === 'stations') {
       for (const st of myStations()) {
@@ -803,6 +793,8 @@
       if (fog) { sheetFog(+fog.dataset.sector); return; }
       const pin = e.target.closest('.pin, .lot-row');
       if (pin) { sheetLot(pin.dataset.lot); return; }
+      const sa = e.target.closest('[data-sa]');
+      if (sa && ui.tab === 'station' && stationAct(sa.dataset.sa, sa)) return;
       const a = e.target.closest('[data-act]');
       if (a && !a.disabled) { act(a.dataset.act, a); return; }
       if (e.target.id === 'backdrop' && ui.sheet && !$('#backdrop [data-act="intro-go"]') && !$('#backdrop [data-act="reset"]')) closeSheet();
