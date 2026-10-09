@@ -1,27 +1,14 @@
-# Tests + mise en ligne automatique.
-# - Pull Request : les tests tournent, rien n'est publié.
-# - Push sur main ou sur feat/refonte-ui : le site est reconstruit avec
-#     /         -> le jeu (branche main)
-#     /preview/ -> l'aperçu (branche feat/refonte-ui, si elle existe et si ses tests passent)
-name: Tests et déploiement
+# Tests : sur chaque push et chaque Pull Request.
+# La publication est faite par pages.yml, déclenchée quand ces tests réussissent.
+name: Tests
 
 on:
   push:
-    branches: [main, feat/refonte-ui]
   pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
-env:
-  PREVIEW_BRANCH: feat/refonte-ui
 
 jobs:
   test:
@@ -38,45 +25,3 @@ jobs:
           npm ci --ignore-scripts
           npx playwright install --with-deps chromium
           npm run test:ui
-
-  build-site:
-    if: github.event_name != 'pull_request'
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          path: main
-      - name: Jeu principal
-        run: cd main && npm test && cp -r dist ../site
-      - name: Branche d'aperçu présente ?
-        id: has_preview
-        run: |
-          if git ls-remote --exit-code --heads https://github.com/${{ github.repository }} "$PREVIEW_BRANCH" >/dev/null; then echo "ok=true" >> "$GITHUB_OUTPUT"; else echo "ok=false" >> "$GITHUB_OUTPUT"; fi
-      - uses: actions/checkout@v4
-        if: steps.has_preview.outputs.ok == 'true'
-        with:
-          ref: ${{ env.PREVIEW_BRANCH }}
-          path: preview
-      - name: Aperçu
-        if: steps.has_preview.outputs.ok == 'true'
-        continue-on-error: true
-        run: cd preview && npm test && PREVIEW=1 node scripts/build.mjs && cp -r dist ../site/preview
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-  deploy:
-    needs: build-site
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/configure-pages@v5
-      - id: deployment
-        uses: actions/deploy-pages@v4
