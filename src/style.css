@@ -1,27 +1,79 @@
-/* Concept : enseigne de car wash américain la nuit — bleu nuit de diner, néons turquoise et rose, chrome, damier.
-   Un seul monde visuel (nuit néon), assumé quel que soit le thème de l'hôte. */
+/* ============================================================
+   Car Wash Tycoon — piste A « Néon Diner »
+   Clair = on regarde · sombre = on touche · néon = prochaine action.
+   Les couleurs viennent de assets/tokens.css (préfixé par le build).
+   ============================================================ */
 :root {
-  --night: #0d1729;
-  --night-2: #13213a;
-  --panel: #182a47;
-  --panel-2: #20365a;
-  --line: #2c4670;
-  --chrome: #c7d2e0;
-  --cream: #fff3d9;
-  --muted: #9fb2cc;
-  --turq: #36e3d0;
-  --turq-dim: #1f8d86;
-  --pink: #ff4f9a;
-  --mustard: #ffc94a;
-  --cherry: #ff5a5f;
-  --good: #5ee08a;
-  --f-script: "Yellowtail", "Brush Script MT", cursive;
-  --f-sign: "Bungee", "Arial Black", Impact, sans-serif;
-  --f-body: "Barlow", "Segoe UI", system-ui, sans-serif;
-  --f-num: "Barlow Condensed", "Arial Narrow", "Barlow", sans-serif;
-  --r: 10px;
-  color-scheme: dark;
+  --f-titre: var(--police-titre), "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  --f-ui: var(--police-ui), "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-logo: var(--police-logo), "Righteous", sans-serif;
+  --veil: rgba(23, 27, 30, .38);
+  --ombre: 0 6px 20px rgba(23, 27, 30, .14);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+
+  /* compatibilité avec l'interface historique, retirée au fil des étapes */
+  --night: var(--fond);
+  --night-2: var(--carrelage);
+  --panel: var(--surface);
+  --panel-2: var(--carrelage);
+  --line: var(--filet);
+  --chrome: var(--encre-2);
+  --cream: var(--encre);
+  --muted: var(--encre-2);
+  --turq: var(--neon-aqua);
+  --turq-dim: #0E8F83;
+  --pink: var(--neon-rose);
+  --mustard: var(--ambre);
+  --cherry: var(--rouge);
+  --good: var(--vert);
+  --f-script: var(--f-logo);
+  --f-sign: var(--f-titre);
+  --f-body: var(--f-ui);
+  --f-num: var(--f-ui);
+  --r: 14px;
 }
+
+/* ---------- composants de base (grammaire des formes) ---------- */
+/* capsule : se touche, avec texte · rayon = moitié de la hauteur */
+.capsule {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: var(--hauteur-bouton); padding: 0 20px; border: 0; border-radius: 999px;
+  background: var(--caisson); color: var(--caisson-texte);
+  font: 700 17px/1 var(--f-ui); letter-spacing: .01em; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: transform .08s ease, filter .15s ease;
+}
+.capsule:active { transform: scale(.97); background: #000; }
+.capsule[disabled], .capsule.off { background: #CFC9BC; color: #F4F0E6; cursor: not-allowed; transform: none; }
+.capsule .ic { width: 20px; height: 20px; flex: none; }
+.capsule .montant { margin-left: auto; font-variant-numeric: tabular-nums; }
+.capsule.bloc { display: flex; width: 100%; }
+.capsule.petite { min-height: 44px; font-size: 15px; padding: 0 16px; }
+/* néon : prochaine action (une ou deux à la fois au maximum) */
+.neon { box-shadow: 0 0 0 2.5px var(--neon-aqua), var(--halo); color: var(--neon-aqua); }
+.capsule.neon .montant { color: var(--caisson-texte); }
+@keyframes pulse-neon { 0%, 100% { box-shadow: 0 0 0 2.5px var(--neon-aqua), var(--halo); } 50% { box-shadow: 0 0 0 2.5px var(--neon-aqua), 0 0 2px var(--neon-aqua); } }
+.neon.pulse { animation: pulse-neon 1.6s ease-in-out infinite; }
+/* rond : se touche, icône seule */
+.rond {
+  display: inline-grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; border: 0;
+  background: var(--caisson); color: var(--caisson-texte); cursor: pointer; position: relative; flex: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.rond .ic { width: 22px; height: 22px; }
+.rond:active { transform: scale(.95); }
+/* sans cadre : se lit */
+.lu { font-family: var(--f-ui); color: var(--encre); }
+.lu .v { font-weight: 700; font-variant-numeric: tabular-nums; }
+.lu .l { color: var(--encre-2); font-size: 12px; font-weight: 600; }
+.petites-caps { font: 700 11px/1.2 var(--f-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--encre-2); }
+/* pictos d'état : la silhouette porte le sens */
+.picto { display: inline-block; width: 22px; height: 22px; flex: none; }
+.ic { display: inline-block; width: 22px; height: 22px; }
+.ic svg, .picto svg { width: 100%; height: 100%; display: block; }
+.num { font-variant-numeric: tabular-nums; }
+
 html, body { height: 100%; }
 body {
   background: var(--night);
@@ -121,7 +173,7 @@ h3 {
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 44px; padding: 10px 16px; border-radius: 10px; border: 0;
-  background: var(--pink); color: #fff; font-weight: 700; font-size: 15px; letter-spacing: .01em;
+  background: var(--caisson); color: var(--caisson-texte); font-weight: 700; font-size: 16px; letter-spacing: .01em; border-radius: 999px;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, .08) inset, 0 4px 14px rgba(255, 79, 154, .3);
 }
 .btn.turq { background: var(--turq); color: var(--night); box-shadow: 0 4px 14px rgba(54, 227, 208, .25); }
@@ -249,7 +301,7 @@ input[type="range"] { width: 100%; accent-color: var(--pink); height: 32px; }
 .tabs button[aria-current="page"] svg { filter: drop-shadow(0 0 5px rgba(54, 227, 208, .7)); }
 
 /* ---------- feuille modale ---------- */
-.backdrop { position: absolute; inset: 0; background: rgba(4, 9, 18, .66); z-index: 20; display: flex; align-items: flex-end; }
+.backdrop { position: absolute; inset: 0; background: var(--veil); z-index: 20; display: flex; align-items: flex-end; }
 .sheet {
   width: 100%; max-height: 88%; overflow-y: auto; background: var(--night-2);
   border-top: 2px solid var(--pink); border-radius: 18px 18px 0 0;
@@ -272,7 +324,7 @@ input[type="range"] { width: 100%; accent-color: var(--pink); height: 32px; }
 /* ---------- toasts ---------- */
 #toasts { position: absolute; left: 12px; right: 12px; bottom: calc(66px + env(safe-area-inset-bottom, 0px)); z-index: 15; display: grid; gap: 6px; pointer-events: none; }
 .toast {
-  background: rgba(19, 33, 58, .97); border: 1px solid var(--line); border-left: 4px solid var(--turq);
+  background: var(--caisson); color: var(--caisson-texte); border: 0; border-left: 4px solid var(--neon-aqua);
   padding: 8px 12px; border-radius: 10px; font-size: 13px; box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
   animation: tin .25s ease-out;
 }
@@ -296,3 +348,29 @@ input[type="range"] { width: 100%; accent-color: var(--pink); height: 32px; }
 /* bandeau d'aperçu */
 .preview-ribbon { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 6px); left: 50%; transform: translateX(-50%); z-index: 99; pointer-events: none;
   font: 700 10px/1 "Barlow Condensed", sans-serif; letter-spacing: .2em; color: #fff; background: #FF2E7A; padding: 3px 8px; border-radius: 99px; opacity: .85; }
+
+/* ---------- étape 1 : habillage clair de l'interface historique ---------- */
+.btn.turq { background: var(--caisson); color: var(--neon-aqua); box-shadow: 0 0 0 2px var(--neon-aqua); }
+.btn.ghost { background: var(--surface); color: var(--encre); border-color: var(--filet); }
+.hud { background: var(--surface); border-bottom: 1px solid var(--filet); }
+.hud::after { display: none; }
+.brand .script { font-family: var(--f-logo); font-size: 20px; color: var(--neon-rose); text-shadow: none; }
+.brand .sign { color: var(--encre); text-shadow: none; }
+.cash { color: var(--encre); text-shadow: none; }
+.speed button { background: var(--caisson); color: var(--caisson-texte); border: 0; border-radius: 999px; }
+.speed button[aria-pressed="true"] { background: var(--caisson); color: var(--neon-aqua); box-shadow: 0 0 0 2px var(--neon-aqua); }
+.objective { background: var(--caisson); color: var(--caisson-texte); border: 0; border-radius: 999px; }
+h3 { color: var(--encre-2); }
+.card, .lot-row, .unit, .kpi { box-shadow: none; }
+.tabs { background: var(--caisson); border-top: 0; }
+.tabs button { color: #9AA3A3; }
+.tabs button[aria-current="page"] { color: var(--neon-aqua); }
+.sheet { background: var(--surface); border-top: 0; border-radius: var(--rayon-feuille) var(--rayon-feuille) 0 0; }
+.modal-center .sheet { border: 0; border-radius: var(--rayon-feuille); }
+.intro-logo .script { font-family: var(--f-logo); font-size: 40px; color: var(--neon-rose); }
+.intro-logo .sign { font-family: var(--f-titre); color: var(--encre); text-shadow: none; }
+.seg button[aria-pressed="true"] { background: var(--caisson); color: var(--caisson-texte); }
+.stepper button { background: var(--caisson); color: var(--caisson-texte); border: 0; border-radius: 999px; }
+.stepper .val { color: var(--encre); }
+.kpi .v.money, .lot-row .pr, .st-card .rev { color: var(--encre); }
+
