@@ -177,8 +177,10 @@ function alerteGo(i) {
 
 // ---------- prochaine action conseillée (un seul néon) ----------
 const PRIX_MIN_EQUIP = () => Math.min(...E.TYPES.map(t => E.EQUIP[t].tiers[0].price));
+const tutoEnCours = () => { const t = Prefs.get().tuto; return typeof t === 'number' && t >= 1; };
 function cibleStation(lot) {
   const st = S.stations[lot];
+  if (tutoEnCours()) return null;   // la main de Bulle suffit
   if (!st) return null;
   const i = st.units.findIndex(u => u.down > 0);
   if (i >= 0) return { t: 'unit', i };
@@ -187,6 +189,7 @@ function cibleStation(lot) {
   return null;
 }
 function cibleMonde() {
+  if (tutoEnCours()) return null;
   const mine = Object.values(S.stations).filter(st => st.owner === 'player');
   for (const rang of ['unit', 'file', 'slot']) {
     const st = mine.find(m => { const c = cibleStation(m.lot); return c && c.t === rang; });

@@ -358,7 +358,7 @@
       case 'turn-day': E.advanceDays(S, 1); afterTick(true); break;
       case 'turn-week': E.advanceDays(S, 7); afterTick(true); break;
       case 'reset': try { localStorage.removeItem(LS_KEY); } catch (e) { } S = E.newGame(); ui.confirm = null; Save.touch(); go('station', 'A'); intro(); return;
-      case 'intro-go': S.seenIntro = true; closeSheet(true); paused = false; go('station', 'A'); Save.touch(); return;
+      case 'intro-go': S.seenIntro = true; closeSheet(true); paused = coachDebut(); go('station', 'A'); Save.touch(); return;
       case 'offline-ok': closeSheet(); return;
       case 'export': {
         const code = exportCode();
@@ -417,18 +417,20 @@
   }
 
   function intro() {
-    openSheet(`<div class="intro"><div class="intro-logo"><div class="script">Car Wash</div><div class="sign">TYCOON</div></div>
-      <p>Département de la Mousse, 1er mars 2027. Tu possèdes un terrain vague aux Bruyères et ${fmt(S.cash)} en poche.</p>
-      <p>Installe ton premier équipement, fixe tes prix, puis explore la carte. Un portique attire plus de monde que des pistes HP, mais il coûte plus cher : la banque est là pour ça.</p>
-      <p>L'emplacement fait tout. Les zones grandissent avec le temps : sois le premier au bon endroit.</p>
+    openSheet(`<div class="titre-jeu">
+      <div class="logo-neon" aria-label="Car Wash Tycoon"><span class="l1">CAR WASH</span><span class="l2">TYCOON</span></div>
+      ${bulle('joie', 96)}
+      <p>Département de la Mousse, 1<sup>er</sup> mars 2027. Un terrain vague aux Bruyères et ${fmt(S.cash)} en poche.</p>
+      <p class="petit">L'emplacement fait tout : sois le premier au bon endroit.</p>
       ${installHint()}
-      <button class="btn block" data-test="start" data-act="intro-go">Ouvrir la station</button></div>`, { center: true, noClose: true });
+      <div class="f-actions"><button class="capsule bloc action neon" data-test="start" data-act="intro-go">${icon('station')}<span class="lib">Jouer</span></button></div></div>`, { center: true, noClose: true });
+    $('#backdrop .sheet').classList.add('popup', 'titre');
   }
   function installHint() {
     const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
     const standalone = window.navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
     if (!ios || standalone || window.claude) return '';
-    return `<p class="signal" style="border-left-color:var(--turq);background:rgba(54,227,208,.08)">Pour l'installer comme une app : touche <b>Partager</b> en bas de Safari, puis <b>Sur l'écran d'accueil</b>.</p>`;
+    return `<p class="petit">Pour l'installer comme une app : touche <b>Partager</b> en bas de Safari, puis <b>Sur l'écran d'accueil</b>.</p>`;
   }
   function gameOver() {
     if (ui.goShown) return; ui.goShown = true;

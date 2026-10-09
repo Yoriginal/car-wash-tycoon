@@ -89,7 +89,7 @@ function brouillardSvg(sc) {
   return `<g class="fog" data-sector="${sc.id}" data-test="fog-${sc.id}" role="button" tabindex="0" aria-label="Secteur inconnu : reconnaître pour ${fmt(E.RECON_COST)}">
     <rect x="${sc.x}" y="${sc.y}" width="${sc.w}" height="${sc.h}" fill="#ECE2C6"/>
     <g clip-path="url(#fogc${sc.id})" fill="#FBF8F1" opacity=".96">${nuages}</g>
-    <circle cx="${cx}" cy="${cy - 4}" r="11" fill="#1B2024"/>
+    <circle class="fog-rond" cx="${cx}" cy="${cy - 4}" r="11" fill="#1B2024"/>
     <g transform="translate(${cx - 6},${cy - 10}) scale(.5)" fill="none" stroke="#F4F0E6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${innerSvg(ASSETS['icones/lock'] || '')}</g>
     <text x="${cx}" y="${cy + 17}" text-anchor="middle" font-family="Barlow Condensed" font-weight="700" font-size="8.5" fill="#171B1E">${fmt(E.RECON_COST)}</text>
   </g>`;

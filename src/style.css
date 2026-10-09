@@ -700,3 +700,30 @@ textarea.code { width: 100%; border: 1px solid var(--filet); border-radius: 12px
 @keyframes cible { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 .nav-picto .picto { width: 18px; height: 18px; }
 @media (prefers-reduced-motion: reduce) { .neon-cible { animation: none; } .modal-center .sheet.popup { animation: none; } }
+
+/* ===== étape 8 : écran titre, onboarding, info-bulles ===== */
+.sheet.popup.titre { padding: 28px 22px 22px; text-align: center; background: var(--fond); }
+.titre-jeu { display: grid; justify-items: center; gap: 10px; }
+.titre-jeu p { margin: 0; font: 500 16px/1.4 var(--f-ui); color: var(--encre); }
+.titre-jeu p.petit, p.petit { font-size: 14px; color: var(--encre-2); }
+.titre-jeu .f-actions { width: 100%; padding: 8px 0 0; }
+.logo-neon { display: grid; justify-items: center; padding: 14px 18px 12px; border-radius: 18px; background: var(--caisson); transform: rotate(-4deg); box-shadow: 0 0 0 3px var(--neon-rose), 0 0 18px rgba(255, 46, 122, .45); margin-bottom: 6px; }
+.logo-neon .l1 { font: 400 34px/1 var(--f-logo); color: var(--neon-rose); text-shadow: 0 0 8px rgba(255, 46, 122, .8); }
+.logo-neon .l2 { font: 400 24px/1.2 var(--f-titre); letter-spacing: .3em; color: var(--neon-aqua); text-shadow: 0 0 6px rgba(20, 191, 174, .8); }
+#coach { position: absolute; inset: 0; z-index: 30; pointer-events: none; }
+#coach[hidden] { display: none; }
+.coach-bulle { position: absolute; left: 12px; right: 12px; display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: start; padding: 12px 14px; border-radius: 20px; background: var(--surface); border: 2px solid var(--encre); box-shadow: var(--ombre); transition: top .25s ease; }
+.coach-face { grid-row: span 2; }
+.coach-txt { margin: 0; font: 600 15.5px/1.35 var(--f-ui); color: var(--encre); }
+.coach-btns { grid-column: 2; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.coach-btns button { pointer-events: auto; }
+.coach-btns [hidden] { display: none; }
+.coach-passer { border: 0; background: none; padding: 10px 0; min-height: 44px; font: 600 13.5px/1 var(--f-ui); color: var(--encre-2); text-decoration: underline; cursor: pointer; }
+.coach-main { position: absolute; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: var(--surface); color: var(--encre); box-shadow: 0 0 0 2.5px var(--neon-aqua), var(--ombre); animation: main-pointe 1s ease-in-out infinite; }
+.coach-main[hidden] { display: none; }
+.coach-main svg { width: 30px; height: 30px; }
+.coach-main.haut svg { transform: rotate(180deg); }
+@keyframes main-pointe { 0%, 100% { translate: 0 0; } 50% { translate: 0 -8px; } }
+.coach-main.haut { animation-name: main-pointe-bas; }
+@keyframes main-pointe-bas { 0%, 100% { translate: 0 0; } 50% { translate: 0 8px; } }
+@media (prefers-reduced-motion: reduce) { .coach-main { animation: none; } .coach-bulle { transition: none; } }

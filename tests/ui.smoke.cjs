@@ -53,10 +53,11 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     await pg.waitForTimeout(300);
     const units = await pg.evaluate(() => __CWT.S.stations.A.units.length);
     ok(units === 1, 'premier équipement installé');
-    await pg.waitForTimeout(300);
+    ok(await pg.evaluate(() => !!document.querySelector('#coach:not([hidden])')), 'tutoriel : Bulle affichée');
+    await pg.click('[data-test="speed-10"]');
+    await pg.waitForTimeout(600);
     ok(!!(await pg.$('[data-test="pop-continuer"]')), 'pop-up « Mission accomplie » affichée');
     await popups(pg);
-    await pg.click('[data-test="speed-10"]');
     await pg.waitForTimeout(5000);
     const rev = await pg.evaluate(() => __CWT.S.totals.rev);
     ok(rev > 0, `première vente encaissée (${Math.round(rev)} €)`);

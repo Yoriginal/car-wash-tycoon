@@ -9,3 +9,5 @@ window.__CWT = { get S() { return S; }, E, go, toast, setSpeed, pop: p => { (ui.
   const hot = window.claude && window.claude.hot;
   if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 }
+coachBuild();
+setInterval(coachTick, 300);
