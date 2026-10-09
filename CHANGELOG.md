@@ -5,6 +5,10 @@ Format : `MAJEUR.MINEUR.CORRECTIF`
 - **MINEUR** : nouvelle fonctionnalité (nouvel équipement, marketing, nouvelle carte…).
 - **CORRECTIF** : bug, équilibrage, texte.
 
+## Infrastructure — 2026-10-09
+- Canal d'aperçu : la branche `feat/refonte-ui` est publiée dans `/preview/` pour être testée avant fusion.
+- Service worker cloisonné par canal (jeu / aperçu) : caches séparés, aucune interférence.
+
 ## 1.1.0 — 2026-10-09
 - Version PWA installable sur iPhone (écran d'accueil, plein écran, hors ligne).
 - Correction : la partie repartait à zéro à chaque ouverture dans Claude.
