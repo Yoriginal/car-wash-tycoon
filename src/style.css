@@ -374,3 +374,70 @@ h3 { color: var(--encre-2); }
 .stepper .val { color: var(--encre); }
 .kpi .v.money, .lot-row .pr, .st-card .rev { color: var(--encre); }
 
+/* ============================================================
+   Étape 2 : HUD haut et dock
+   ============================================================ */
+#app { background: var(--fond); }
+#hud {
+  display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px;
+  padding: calc(6px + var(--safe-top)) 10px 6px; min-height: 54px; background: var(--surface);
+  border-bottom: 1px solid var(--filet); position: relative; z-index: 5;
+}
+.tresor { min-height: 46px; padding: 0 14px 0 6px; gap: 8px; justify-content: flex-start; }
+.tresor .coin-wrap { display: grid; }
+.tresor-txt { display: grid; text-align: left; line-height: 1.05; }
+.tresor-txt b { font-size: 21px; }
+.tresor-txt b.neg { color: #FF6B61; }
+.trend { font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.trend.up { color: #4BD06B; }
+.trend.down { color: #FF6B61; }
+.hud-centre { display: grid; justify-items: center; gap: 3px; min-width: 0; }
+.hud-date { font-size: 13px; font-weight: 700; white-space: nowrap; }
+.meteo { min-height: 24px; padding: 0 10px; gap: 5px; font-size: 13px; border-radius: 999px; }
+.meteo .ic { width: 16px; height: 16px; color: var(--ambre); }
+.wx-ev { color: var(--ambre); }
+.hud-niveau { display: grid; justify-items: center; line-height: 1; }
+.hud-niveau b { font-size: 24px; margin-top: 2px; }
+.cloche .bell-ic svg { width: 22px; height: 22px; display: block; }
+.badge { position: absolute; top: -3px; right: -3px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px;
+  background: var(--rouge); color: #fff; font: 700 11.5px/19px var(--f-ui); text-align: center; border: 2px solid var(--surface); }
+
+main#view { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 14px 16px 84px; background: var(--fond); }
+
+/* bulle d'objectif : capsule sombre posée en bas de la scène */
+.objectif {
+  position: absolute; left: 12px; right: 12px; z-index: 4; justify-content: flex-start; gap: 10px;
+  bottom: calc(var(--dock-h, 128px) + 10px); min-height: 52px; padding: 0 16px 0 10px;
+  border: 2px solid var(--neon-rose); box-shadow: var(--ombre);
+}
+.objectif .obj-ic { color: var(--neon-rose); display: grid; }
+.objectif .obj-col { display: grid; gap: 5px; flex: 1; min-width: 0; text-align: left; }
+.objectif .txt { font-size: 14.5px; line-height: 1.15; }
+.objectif .jauge { height: 7px; border-radius: 9px; background: #3A4146; overflow: hidden; }
+.objectif .jauge i { display: block; height: 100%; background: var(--neon-rose); border-radius: 9px; }
+.objectif .obj-val { font-size: 13px; white-space: nowrap; }
+.objectif[hidden] { display: none; }
+
+/* dock */
+#dock { background: var(--caisson); padding-bottom: var(--safe-bottom); position: relative; z-index: 6; }
+#tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px 10px 8px; border-bottom: 1px solid #2C3237; }
+#tools[hidden] { display: none; }
+.tool { background: var(--caisson-dock); min-height: 46px; padding: 0 8px; font-size: 15px; gap: 6px; }
+.tool .ic { width: 18px; height: 18px; }
+#nav { display: grid; grid-template-columns: 1fr 1fr 96px 1fr 1fr; align-items: end; padding: 8px 4px 10px; }
+.nav-btn { background: none; border: 0; display: grid; justify-items: center; gap: 5px; color: var(--caisson-texte); cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
+.nav-btn .rond { background: var(--caisson-dock); }
+.nav-btn.actif .rond { box-shadow: 0 0 0 2.5px var(--neon-aqua), var(--halo); color: var(--neon-aqua); }
+.nav-t { font: 700 13px/1 var(--f-ui); }
+.nav-picto { position: absolute; top: -6px; right: -7px; }
+.nav-picto:empty { display: none; }
+.dial-wrap { display: grid; place-items: center; height: 70px; position: relative; }
+.dial { width: 76px; height: 76px; border-radius: 50%; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+  box-shadow: 0 0 0 4px var(--caisson), var(--halo); cursor: pointer; touch-action: none; -webkit-tap-highlight-color: transparent; }
+.dial svg { width: 100%; height: 100%; display: block; }
+.dial-hit { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: transparent; border: 0; padding: 0; cursor: pointer; }
+.dial:focus-visible { outline: 3px solid var(--ambre); }
+
+#toasts { bottom: calc(var(--dock-h, 128px) + 70px); }
+.tabs, .hud-row, .brand { display: none !important; }
+

@@ -6,22 +6,24 @@
 /*STYLE*/
 </style>
 <div id="app">
-  <header class="hud">
-    <div class="brand"><span class="script">Car Wash</span><span class="sign">TYCOON</span></div>
-    <div class="cash num" id="cash" aria-live="off">0 €</div>
-    <div class="hud-row">
-      <div class="when"><span id="wx" aria-label=""></span><span id="date"></span><span class="clock" id="clock"></span></div>
-      <div class="speed" id="speed" role="group" aria-label="Vitesse du temps"></div>
+  <header id="hud">
+    <button class="capsule tresor" id="hud-cash" data-test="hud-cash" aria-label="Trésorerie, ouvrir la banque">
+      <span class="coin-wrap"></span>
+      <span class="tresor-txt"><b class="num" id="cash">0 €</b><small class="trend up" id="trend"></small></span>
+    </button>
+    <div class="hud-centre">
+      <div class="lu hud-date" id="hud-date"></div>
+      <button class="capsule meteo" id="hud-meteo" aria-label="Météo"><span id="wx"></span><span id="wx-name"></span><span class="wx-ev" id="wx-ev" hidden></span></button>
     </div>
+    <div class="lu hud-niveau"><span class="petites-caps">Niveau</span><b class="num" id="niveau">1</b></div>
+    <button class="rond cloche" id="hud-bell" data-test="bell" aria-label="Alertes"><span class="ic bell-ic"></span><span class="badge num" id="bell-n" hidden>0</span></button>
   </header>
-  <button class="objective" id="objective" hidden><span class="tag"></span><span class="txt"></span></button>
   <main id="view"></main>
-  <nav class="tabs" aria-label="Navigation">
-    <button data-tab="map" data-ic="map" aria-current="page"><span class="ic"></span>Carte</button>
-    <button data-tab="stations" data-ic="stations"><span class="ic"></span>Stations</button>
-    <button data-tab="finances" data-ic="money"><span class="ic"></span>Finances</button>
-    <button data-tab="journal" data-ic="journal"><span class="ic"></span>Journal</button>
-  </nav>
+  <button class="capsule objectif" id="objective" data-test="objective" hidden><span class="obj-ic"></span><span class="obj-col"><span class="txt"></span><span class="jauge" hidden><i></i></span></span><span class="obj-val num"></span></button>
+  <div id="dock">
+    <div id="tools" hidden></div>
+    <nav id="nav" aria-label="Navigation"></nav>
+  </div>
   <div id="backdrop" class="backdrop" hidden></div>
   <div id="toasts" aria-live="polite"></div>
 </div>

@@ -104,40 +104,14 @@
     const dm = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
     return `${wd} ${dm}`;
   }
-  function renderHud() {
-    const c = $('#cash');
-    c.textContent = fmt(S.cash);
-    c.classList.toggle('neg', S.cash < 0);
-    $('#date').textContent = dateLabel();
-    $('#clock').textContent = S.mode === 'turn' ? E.seasonOf(S.d) : String(S.h).padStart(2, '0') + ' h';
-    const w = S.weather.today;
-    const wEl = $('#wx');
-    if (wEl.dataset.w !== w) { wEl.innerHTML = ICON[w]; wEl.dataset.w = w; wEl.title = E.WEATHER[w].n; wEl.setAttribute('aria-label', E.WEATHER[w].n); }
-    renderSpeed();
-    const ob = $('#objective');
-    if (S.obj < E.OBJECTIVES.length) {
-      ob.hidden = false;
-      ob.querySelector('.txt').textContent = E.OBJECTIVES[S.obj].t;
-      ob.querySelector('.tag').textContent = `OBJECTIF ${S.obj + 1}/${E.OBJECTIVES.length}`;
-    } else ob.hidden = true;
-  }
-  function renderSpeed() {
-    const box = $('#speed');
-    const key = S.mode + '|' + (paused ? 0 : S.speed);
-    if (box.dataset.k === key) return;
-    box.dataset.k = key;
-    if (S.mode === 'turn') {
-      box.innerHTML = `<button class="turn" data-act="turn-day">+1 jour</button><button class="turn" data-act="turn-week" aria-pressed="true">Semaine ▸</button>`;
-    } else {
-      box.innerHTML = [0, 1, 3, 10].map(v => `<button data-speed="${v}" data-test="speed-${v}" aria-pressed="${(v === 0 ? paused : !paused && S.speed === v)}" aria-label="${v ? 'Vitesse ×' + v : 'Pause'}">${v ? '×' + v : ICON.pause}</button>`).join('');
-    }
-  }
+  function renderHud() { hudRender(); dockRender(); objRender(); }
+  function renderSpeed() { dialRender(); }
 
   // ---------------- navigation ----------------
   function go(tab, lot = null) {
     ui.tab = tab; ui.lot = lot; ui.confirm = null;
-    $$('.tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === (tab === 'station' ? 'stations' : tab) ? 'page' : 'false'));
     renderView();
+    dockRender();
     $('main').scrollTop = 0;
   }
   function renderAll() { renderHud(); renderView(); }
@@ -371,7 +345,7 @@
     html += `</div>`;
     // prix
     if (types.length) {
-      html += `<h3>Prix des programmes</h3><div class="stack">`;
+      html += `<h3 id="sec-prix">Prix des programmes</h3><div class="stack">`;
       for (const t of types) {
         const ref = E.refPrice(S, lotId, t);
         const pf = E.priceFactor(st.prices[t], ref);
@@ -381,12 +355,12 @@
       html += `</div><p class="sub" style="margin:8px 0 0">Prix libre de 1 à 40 €. File saturée ? Monte le prix. Station vide ? Baisse-le.</p>`;
     }
     // chimie
-    html += `<h3>Chimie</h3><div class="seg">${E.CHEM.map((c, i) => `<button data-act="chem" data-v="${i}" aria-pressed="${st.chem === i}">${c.n}<small>${i ? '+15 % d\'attractivité, coût par lavage plus élevé' : 'Qualité correcte'}</small></button>`).join('')}</div>`;
+    html += `<h3 id="sec-entretien">Chimie</h3><div class="seg">${E.CHEM.map((c, i) => `<button data-act="chem" data-v="${i}" aria-pressed="${st.chem === i}">${c.n}<small>${i ? '+15 % d\'attractivité, coût par lavage plus élevé' : 'Qualité correcte'}</small></button>`).join('')}</div>`;
     // contrat
     html += `<h3>Contrat de maintenance</h3><div class="seg">${E.CONTRACTS.map((c, i) => `<button data-act="contract" data-v="${i}" aria-pressed="${st.contract === i}">${c.n}<small>${c.delay} j · ${c.perUnitDay ? fmt(c.perUnitDay * E.usedSlots(st) * 30) + '/mois' : 'à la panne'}</small></button>`).join('')}</div>
       <p class="sub" style="margin:8px 0 0">${esc(E.CONTRACTS[st.contract].desc)}. Délai d'intervention ${E.CONTRACTS[st.contract].delay} jour${E.CONTRACTS[st.contract].delay > 1 ? 's' : ''}.</p>`;
     // personnel
-    html += `<h3>Personnel</h3>`;
+    html += `<h3 id="sec-equipe">Personnel</h3>`;
     if (st.staff) {
       const e = S.staff.find(x => x.id === st.staff);
       const bonus = Math.round(E.staffBonus(S, st) * 100);
@@ -398,7 +372,7 @@
         <div class="row wrap"><button class="btn small" data-act="hire-assign" data-lot="${lotId}">Embaucher</button>${avail.map(e => `<button class="btn ghost small" data-act="assign" data-emp="${e.id}" data-lot="${lotId}">Partager ${esc(e.name)} (${e.stations.length}/3)</button>`).join('')}</div></div>`;
     }
     // vente
-    html += `<h3>Revente</h3>`;
+    html += `<h3 id="sec-station">Revente</h3>`;
     if (ui.confirm === 'sell-station') html += `<div class="confirm"><button class="btn danger" data-act="sell-station" data-lot="${lotId}">Confirmer la vente · ${fmt(E.stationValue(S, lotId))}</button><button class="btn ghost" data-act="cancel">Annuler</button></div>`;
     else html += `<button class="btn ghost" data-act="ask" data-key="sell-station">Vendre la station · ${fmt(E.stationValue(S, lotId))}</button>`;
     return html;
@@ -818,12 +792,13 @@
   // ---------------- démarrage ----------------
   function bindUI() {
     document.addEventListener('click', e => {
-      const sp = e.target.closest('[data-speed]');
-      if (sp) { const v = +sp.dataset.speed; if (v === 0) paused = !paused; else { S.speed = v; paused = false; } if (ui.sheet) ui.wasPaused = paused; renderSpeed(); return; }
-      const tb = e.target.closest('.tabs [data-tab]');
-      if (tb) { closeSheet(true); go(tb.dataset.tab); return; }
-      const ob = e.target.closest('#objective');
-      if (ob) { go('journal'); return; }
+      const nav = e.target.closest('[data-nav]');
+      if (nav) { closeSheet(true); go(nav.dataset.nav); return; }
+      const tool = e.target.closest('[data-tool]');
+      if (tool) { toolOpen(tool.dataset.tool); return; }
+      if (e.target.closest('#hud-cash')) { closeSheet(true); go('finances'); return; }
+      if (e.target.closest('#hud-bell') || e.target.closest('#objective')) { closeSheet(true); go('journal'); return; }
+      if (e.target.closest('#hud-meteo')) { meteoSheet(); return; }
       const fog = e.target.closest('.fog');
       if (fog) { sheetFog(+fog.dataset.sector); return; }
       const pin = e.target.closest('.pin, .lot-row');
@@ -888,7 +863,7 @@
     if (data && data.ui) Object.assign(ui, data.ui, { sheet: null, toastQ: [] });
     ui.logTop = S.log[0];
     bindUI();
-    $$('.tabs button').forEach(b => { b.querySelector('.ic').innerHTML = ICON[b.dataset.ic]; });
+    dockBuild();
     go(ui.tab || 'map', ui.lot);
     if (!(data && data.state)) {
       if (!S.seenIntro) { paused = true; intro(); }
@@ -902,6 +877,3 @@
     if (navigator.storage && navigator.storage.persist) { try { navigator.storage.persist(); } catch (e) { } }
     requestAnimationFrame(t => { lastT = t; frame(t); });
   }
-  window.__CWT = { get S() { return S; }, E, go, toast, act: (a, d = {}) => act(a, { dataset: d }) };
-  const hot = window.claude && window.claude.hot;
-  if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
