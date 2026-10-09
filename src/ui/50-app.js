@@ -1,7 +1,4 @@
-/* ============================================================
-   CAR WASH TYCOON — interface
-   ============================================================ */
-(() => {
+/* Interface historique (V1.1) : remplacée progressivement par les modules de la refonte. */
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
   const fmt = E.fmt;
@@ -132,7 +129,7 @@
     if (S.mode === 'turn') {
       box.innerHTML = `<button class="turn" data-act="turn-day">+1 jour</button><button class="turn" data-act="turn-week" aria-pressed="true">Semaine ▸</button>`;
     } else {
-      box.innerHTML = [0, 1, 3, 10].map(v => `<button data-speed="${v}" aria-pressed="${(v === 0 ? paused : !paused && S.speed === v)}" aria-label="${v ? 'Vitesse ×' + v : 'Pause'}">${v ? '×' + v : ICON.pause}</button>`).join('');
+      box.innerHTML = [0, 1, 3, 10].map(v => `<button data-speed="${v}" data-test="speed-${v}" aria-pressed="${(v === 0 ? paused : !paused && S.speed === v)}" aria-label="${v ? 'Vitesse ×' + v : 'Pause'}">${v ? '×' + v : ICON.pause}</button>`).join('');
     }
   }
 
@@ -370,7 +367,7 @@
           ? `<span class="confirm"><button class="btn danger small" data-act="sell-unit" data-i="${i}">Revendre ${fmt(E.unitResale(u))}</button><button class="btn ghost small" data-act="cancel">Non</button></span>`
           : `<button class="btn ghost small" data-act="ask" data-key="${key}">Revendre</button>`}</span></div>`;
     });
-    if (free > 0) html += `<button class="add-slot" data-act="add-unit" data-lot="${lotId}">+ Ajouter un équipement · ${free} emplacement${free > 1 ? 's' : ''} libre${free > 1 ? 's' : ''}</button>`;
+    if (free > 0) html += `<button class="add-slot" data-test="slot-free" data-act="add-unit" data-lot="${lotId}">+ Ajouter un équipement · ${free} emplacement${free > 1 ? 's' : ''} libre${free > 1 ? 's' : ''}</button>`;
     html += `</div>`;
     // prix
     if (types.length) {
@@ -413,12 +410,12 @@
     const e = E.EQUIP[type];
     const free = E.freeSlots(st);
     let html = `<h2>Ajouter un équipement</h2><p class="sub" style="margin:4px 0 12px">${free} emplacement${free > 1 ? 's' : ''} libre${free > 1 ? 's' : ''} · trésorerie ${fmt(S.cash)}</p>
-      <div class="seg" style="margin-bottom:12px">${E.TYPES.map(t => `<button data-act="unit-type" data-t="${t}" data-lot="${lotId}" aria-pressed="${t === type}">${E.EQUIP[t].name}<small>${E.EQUIP[t].slots} emplacement${E.EQUIP[t].slots > 1 ? 's' : ''}</small></button>`).join('')}</div>
+      <div class="seg" style="margin-bottom:12px">${E.TYPES.map(t => `<button data-act="unit-type" data-test="type-${t}" data-t="${t}" data-lot="${lotId}" aria-pressed="${t === type}">${E.EQUIP[t].name}<small>${E.EQUIP[t].slots} emplacement${E.EQUIP[t].slots > 1 ? 's' : ''}</small></button>`).join('')}</div>
       <div class="tiers">`;
     e.tiers.forEach((t, i) => {
       const can = free >= e.slots && S.cash >= t.price;
       html += `<div class="card tier"><span><b>${e.name} ${t.n}</b></span>
-        <button class="btn small ${i === 1 ? '' : 'turq'}" data-act="buy-unit" data-lot="${lotId}" data-t="${type}" data-tier="${i}" ${can ? '' : 'disabled'}><span class="price">${fmt(t.price)}</span></button>
+        <button class="btn small ${i === 1 ? '' : 'turq'}" data-act="buy-unit" data-test="buy-${type}-${i}" data-lot="${lotId}" data-t="${type}" data-tier="${i}" ${can ? '' : 'disabled'}><span class="price">${fmt(t.price)}</span></button>
         <div class="stats"><span><b>${t.cap}</b> lavages/h</span><span>attractivité <b>×${String(t.attr).replace('.', ',')}</b></span><span><b>${t.fail}</b> pannes/an</span><span><b>${t.life}</b> ans</span></div></div>`;
     });
     html += `</div>`;
@@ -461,7 +458,7 @@
       <div><div class="sub" style="margin-bottom:6px">Rythme de jeu</div><div class="seg">
         <button data-act="mode" data-v="realtime" aria-pressed="${S.mode === 'realtime'}">Temps réel<small>1 jour = 20 s en ×1</small></button>
         <button data-act="mode" data-v="turn" aria-pressed="${S.mode === 'turn'}">Tour par tour<small>Une semaine par tour</small></button></div></div>
-      <p class="sub" style="margin:0">Version ${E.GAME_VERSION}. Sauvegarde ${Save.status === 'cloud' ? 'sur ton compte Claude et sur cet appareil' : 'sur cet appareil'}, automatique. Hors ligne, tes stations tournent à 50 % pendant 8 h maximum.</p>
+      <p class="sub" style="margin:0">Version ${APP_VERSION}. Sauvegarde ${Save.status === 'cloud' ? 'sur ton compte Claude et sur cet appareil' : 'sur cet appareil'}, automatique. Hors ligne, tes stations tournent à 50 % pendant 8 h maximum.</p>
       <div class="row wrap"><button class="btn ghost small" data-act="export">Copier ma partie</button><button class="btn ghost small" data-act="import-open">Importer une partie</button></div>
       ${ui.importOpen ? `<label class="sub" for="importCode">Colle le code copié depuis l'autre version du jeu :</label><textarea id="importCode" rows="3" style="width:100%;background:var(--night-2);color:var(--cream);border:1px solid var(--line);border-radius:10px;padding:8px;font:12px monospace"></textarea><div class="row"><button class="btn small" data-act="import">Charger cette partie</button><button class="btn ghost small" data-act="import-close">Annuler</button></div>` : ''}
       ${ui.confirm === 'reset' ? `<div class="confirm"><button class="btn danger" data-act="reset">Effacer et recommencer</button><button class="btn ghost" data-act="cancel">Annuler</button></div>` : `<button class="btn ghost" data-act="ask" data-key="reset">Nouvelle partie</button>`}
@@ -649,7 +646,7 @@
       <p>Installe ton premier équipement, fixe tes prix, puis explore la carte. Un portique attire plus de monde que des pistes HP, mais il coûte plus cher : la banque est là pour ça.</p>
       <p>L'emplacement fait tout. Les zones grandissent avec le temps : sois le premier au bon endroit.</p>
       ${installHint()}
-      <button class="btn block" data-act="intro-go">Ouvrir la station</button></div>`, { center: true, noClose: true });
+      <button class="btn block" data-test="start" data-act="intro-go">Ouvrir la station</button></div>`, { center: true, noClose: true });
   }
   function installHint() {
     const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -908,4 +905,3 @@
   window.__CWT = { get S() { return S; }, E, go, toast, act: (a, d = {}) => act(a, { dataset: d }) };
   const hot = window.claude && window.claude.hot;
   if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
-})();

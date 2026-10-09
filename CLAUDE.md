@@ -5,10 +5,23 @@ mise en ligne arrive sur son téléphone, donc **une version ne doit jamais cass
 
 ## Architecture
 - `src/engine.js` : moteur pur (aucun accès au DOM). Toute la logique de jeu est ici et testable sous Node.
-- `src/app.js` : interface, rendu, sauvegarde, diorama canvas. Il appelle le moteur via l'objet `E`.
-- `src/style.css` : tokens de couleur et de typo en tête de fichier, DA car wash américain rétro néon.
-- `scripts/build.mjs` : produit `dist/` (PWA GitHub Pages) et `build/artifact.html` (artifact Claude).
+  **Ne pas le modifier sans accord explicite de Yoann** (règles, valeurs, format de sauvegarde).
+- `src/ui/*.js` : modules d'interface, concaténés par ordre alphabétique dans une seule portée par le build.
+  Ils lisent l'état `S` et appellent le moteur via `E`, sans jamais ajouter de champ à `S`.
+- `src/assets/` : graphismes nettoyés (générés par `scripts/import-assets.mjs` depuis `design/pack/`),
+  exposés dans le code par `ASSETS['dossier/nom']` et `ASSET_DEFS`. `tokens.css` = source des couleurs.
+- `src/style.css` : styles ; `src/body.html` : squelette.
+- `design/` : brief, planches et pack Claude Design d'origine (référence, jamais chargés par le jeu).
+- `scripts/build.mjs` : produit `dist/` (PWA) ; `PREVIEW=1` produit l'aperçu servi dans `/preview/`.
 - Ne jamais éditer `dist/` ou `build/` à la main (générés, ignorés par git).
+
+## Préférences d'interface
+- Ce que l'interface doit retenir (tutoriel vu, info-bulles, son) va dans la clé `cwt-ui-v1`, jamais dans `S`.
+
+## Canal d'aperçu
+- La branche `feat/refonte-ui` est publiée dans `/preview/` (même appareil, même sauvegarde que le jeu).
+- À chaque ouverture de l'aperçu, la partie est copiée dans `cwt-backup-apercu-1..3` (rotation).
+- Le service worker de chaque canal a ses propres caches ; celui du jeu ignore `/preview/`.
 
 ## Sauvegardes (règle la plus importante)
 - La clé `localStorage` `cwt-save-v3` ne change jamais.
@@ -21,9 +34,9 @@ mise en ligne arrive sur son téléphone, donc **une version ne doit jamais cass
 
 ## Processus de version
 1. Créer une branche `feat/<sujet>` ou `fix/<sujet>`.
-2. Coder, puis `npm test` (doit passer).
-3. Mettre à jour `GAME_VERSION` dans `engine.js`, `version` dans `package.json` et `CHANGELOG.md`
-   (MAJEUR.MINEUR.CORRECTIF).
+2. Coder, puis `npm test` et `npm run test:ui` (doivent passer ; le second charge une vraie partie 1.1).
+3. Mettre à jour `version` dans `package.json` (affichée dans le jeu) et `CHANGELOG.md`
+   (MAJEUR.MINEUR.CORRECTIF). `GAME_VERSION` du moteur ne bouge que si le moteur change.
 4. Pull Request vers `main` ; la fusion déclenche les tests puis le déploiement GitHub Pages.
 5. Si l'artifact Claude doit suivre : republier `build/artifact.html` sur la même URL d'artifact.
 

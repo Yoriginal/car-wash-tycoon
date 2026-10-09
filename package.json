@@ -6,7 +6,11 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node tests/engine.test.js && node tests/syntax.test.js",
-    "serve": "node scripts/build.mjs && npx --yes http-server dist -p 8080 -c-1"
+    "serve": "node scripts/build.mjs && npx --yes http-server dist -p 8080 -c-1",
+    "test:ui": "node tests/ui.smoke.cjs"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "playwright": "1.56.0"
+  }
 }

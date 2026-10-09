@@ -292,3 +292,7 @@ input[type="range"] { width: 100%; accent-color: var(--pink); height: 32px; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; }
 }
+
+/* bandeau d'aperçu */
+.preview-ribbon { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 6px); left: 50%; transform: translateX(-50%); z-index: 99; pointer-events: none;
+  font: 700 10px/1 "Barlow Condensed", sans-serif; letter-spacing: .2em; color: #fff; background: #FF2E7A; padding: 3px 8px; border-radius: 99px; opacity: .85; }

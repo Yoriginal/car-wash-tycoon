@@ -1,0 +1,25 @@
+:root {
+  /* Car Wash Tycoon — piste A « Néon Diner » (clair + dock sombre) */
+  --fond: #F7F4EE;          /* décor, fonds clairs : on regarde */
+  --surface: #FFFFFF;       /* feuilles, panneaux */
+  --carrelage: #EFEBE3;    /* cartes, zones secondaires */
+  --encre: #171B1E;        /* texte */
+  --encre-2: #6A7276;     /* texte secondaire */
+  --filet: #D8D2C6;
+  --caisson: #1B2024;      /* tout ce qui se touche */
+  --caisson-dock: #2C3237;  /* boutons posés dans le dock sombre */
+  --caisson-texte: #F4F0E6;
+  --neon-aqua: #14BFAE;     /* prochaine action */
+  --neon-rose: #FF2E7A;     /* enseignes, récompense */
+  --ambre: #F5A300;        /* opportunité */
+  --rouge: #EE3B30;       /* critique */
+  --ciel: #1E97E0;        /* info */
+  --vert: #22A447;          /* ok, gain */
+  --rayon-feuille: 24px; /* panneaux et pop-ups */
+  --hauteur-bouton: 48px; /* 44 px minimum, rayon = moitié */
+  --halo: 0 0 6px var(--neon-aqua), 0 0 14px color-mix(in srgb, var(--neon-aqua) 60%, transparent);
+  --police-titre: 'Righteous', sans-serif;
+  --police-ui: 'Barlow Condensed', sans-serif;  /* 600-700 ; chiffres en 700 */
+  --police-logo: 'Monoton', sans-serif;
+}
+/* Google Fonts : Righteous, Barlow Condensed (500;600;700), Monoton */

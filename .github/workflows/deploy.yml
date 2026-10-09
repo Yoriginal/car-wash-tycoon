@@ -32,6 +32,12 @@ jobs:
         with:
           node-version: 22
       - run: npm test
+      - name: Test d'interface (navigateur)
+        if: hashFiles('tests/ui.smoke.cjs') != ''
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+          npm run test:ui
 
   build-site:
     if: github.event_name != 'pull_request'
