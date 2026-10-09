@@ -83,6 +83,20 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     await pg.waitForTimeout(300);
     ok(!!(await pg.$('[data-test="reconnaitre"]')), 'fiche Reconnaissance ouverte depuis le brouillard');
     await pg.screenshot({ path: join(root, 'build/ui-smoke-monde.png') });
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+
+    // 5. dock : Empire, Banque (emprunt), Missions et Réglages en feuilles
+    await pg.click('[data-nav="stations"]'); await pg.waitForTimeout(300);
+    ok(!!(await pg.$('[data-test="empire-A"]')), 'Empire liste la station');
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    await pg.click('[data-nav="finances"]'); await pg.waitForTimeout(300);
+    const cash0 = await pg.evaluate(() => __CWT.S.cash);
+    await pg.click('[data-test="emprunter"]'); await pg.waitForTimeout(300);
+    ok(await pg.evaluate(c => __CWT.S.loans.length === 1 && __CWT.S.cash > c, cash0), 'emprunt accordé depuis la Banque');
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    await pg.click('[data-nav="journal"]'); await pg.waitForTimeout(300);
+    await pg.click('[data-test="reglages"]'); await pg.waitForTimeout(300);
+    ok(!!(await pg.$('[data-fa="reg-exporter"]')), 'Réglages ouverts depuis Missions');
   } catch (e) { console.error('  ✗ ' + e.message); failed++; }
   finally { await browser.close(); srv.kill(); }
   ok(errors.length === 0, 'aucune erreur JavaScript' + (errors.length ? ' : ' + errors.slice(0, 3).join(' | ') : ''));

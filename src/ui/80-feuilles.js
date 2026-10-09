@@ -44,6 +44,7 @@ function feuilleRender(still = true) {
   const sc = still ? ($('#backdrop .sheet') || {}).scrollTop || 0 : 0;
   openSheet(html, { feuille: true, still });
   if (sc) $('#backdrop .sheet').scrollTop = sc;
+  dockRender();
 }
 const feuilleRefresh = () => feuilleRender(true);
 
@@ -356,7 +357,7 @@ function feuilleAct(a, el) {
   const lot = f.lot;
   const st = S.stations[lot];
   let r;
-  if (mondeAct(a)) return;
+  if (mondeAct(a) || ecransAct(a, el)) return;
   switch (a) {
     case 'ouvrir': feuilleOpen(el.dataset.k, { lot }); return;
     case 'annuler': f.confirm = null; feuilleRefresh(); return;
@@ -388,7 +389,7 @@ function feuilleAct(a, el) {
       break;
     }
     case 'st-vendre': f.confirm = true; break;
-    case 'st-vendre-ok': r = E.sellStation(S, lot); closeSheet(true); go('stations'); toast(`Station vendue ${fmt(r.v)}.`, 'info'); renderHud(); Save.touch(); return;
+    case 'st-vendre-ok': r = E.sellStation(S, lot); closeSheet(true); go('map'); toast(`Station vendue ${fmt(r.v)}.`, 'info'); renderHud(); Save.touch(); return;
   }
   if (r && !r.ok && r.msg) toast(r.msg, 'bad');
   renderHud();
@@ -404,6 +405,8 @@ function catalogueDefautTier(type) {
 // ---------- gestes : curseur de prix, glisser vers le bas pour fermer ----------
 function feuillesBind() {
   document.addEventListener('input', e => {
+    const b = e.target.closest && e.target.closest('.banque-range');
+    if (b) { banqueMaj(+b.value); return; }
     const r = e.target.closest && e.target.closest('.prix-range');
     if (r) prixSet(r.dataset.t, +r.value);
   });

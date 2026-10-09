@@ -118,12 +118,12 @@
   function renderView() {
     const m = $('main');
     const keep = m.scrollTop;
-    m.classList.toggle('plein', ui.tab === 'map');
     if (ui.tab === 'map') m.innerHTML = viewMonde();
     else if (ui.tab === 'stations') m.innerHTML = viewStations();
     else if (ui.tab === 'station') m.innerHTML = viewStation(ui.lot);
     else if (ui.tab === 'finances') m.innerHTML = viewFinances();
     else m.innerHTML = viewJournal();
+    m.classList.toggle('plein', ui.tab === 'map');
     m.scrollTop = keep;
     Dio.detach();
     if (ui.tab === 'finances') bindLoan();
@@ -186,7 +186,7 @@
   // ---------------- vue station ----------------
   function viewStation(lotId) {
     const st = S.stations[lotId];
-    if (!st || st.owner !== 'player') { ui.tab = 'stations'; return viewStations(); }
+    if (!st || st.owner !== 'player') { ui.tab = 'map'; return viewMonde(); }
     const l = E.lotDef(lotId), z = E.zoneOf(S, lotId);
     const h = last(st, 30);
     const rev30 = sum(h, x => x.rev), net30 = rev30 - sum(h, x => x.cost);
@@ -317,7 +317,7 @@
     bd.hidden = true; bd.innerHTML = '';
     ui.sheet = null; ui.f = null;
     paused = ui.wasPaused;
-    if (!silent) renderAll();
+    if (!silent) renderAll(); else dockRender();
   }
 
   // ---------------- actions ----------------
@@ -338,7 +338,7 @@
       case 'ask': ui.confirm = el.dataset.key; renderView(); return;
       case 'cancel': ui.confirm = null; renderView(); return;
       case 'sell-unit': E.sellUnit(S, ui.lot, +el.dataset.i); ui.confirm = null; renderView(); break;
-      case 'sell-station': r = E.sellStation(S, lot); ui.confirm = null; go('stations'); toast(`Station vendue ${fmt(r.v)}.`, 'info'); break;
+      case 'sell-station': r = E.sellStation(S, lot); ui.confirm = null; go('map'); toast(`Station vendue ${fmt(r.v)}.`, 'info'); break;
       case 'price': {
         const st = S.stations[ui.lot];
         st.prices[el.dataset.t] = Math.max(1, Math.min(40, st.prices[el.dataset.t] + +el.dataset.d));
@@ -591,11 +591,11 @@
   function bindUI() {
     document.addEventListener('click', e => {
       const nav = e.target.closest('[data-nav]');
-      if (nav) { closeSheet(true); go(nav.dataset.nav); return; }
+      if (nav) { navOpen(nav.dataset.nav); return; }
       const tool = e.target.closest('[data-tool]');
       if (tool) { toolOpen(tool.dataset.tool); return; }
-      if (e.target.closest('#hud-cash')) { closeSheet(true); go('finances'); return; }
-      if (e.target.closest('#hud-bell') || e.target.closest('#objective')) { closeSheet(true); go('journal'); return; }
+      if (e.target.closest('#hud-cash')) { navOpen('finances'); return; }
+      if (e.target.closest('#hud-bell') || e.target.closest('#objective')) { navOpen('journal'); return; }
       if (e.target.closest('#hud-meteo')) { meteoSheet(); return; }
       const fog = e.target.closest('.fog');
       if (fog) { sheetFog(+fog.dataset.sector); return; }

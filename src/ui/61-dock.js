@@ -27,7 +27,8 @@ function dockBuild() {
 }
 
 function dockRender() {
-  const active = ui.tab === 'station' ? 'stations' : ui.tab;
+  const ouverte = ui.sheet && ui.f && Object.keys(NAV_FEUILLE).find(k => NAV_FEUILLE[k] === ui.f.kind);
+  const active = ouverte || (ui.sheet ? '' : ui.tab === 'map' ? 'map' : '');
   for (const b of $$('#nav .nav-btn')) b.classList.toggle('actif', b.dataset.nav === active);
   $('#tools').hidden = ui.tab !== 'station';
   const h = $('#dock').offsetHeight;

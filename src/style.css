@@ -593,3 +593,68 @@ main#view.plein { padding: 0; overflow: hidden; position: relative; }
 .t-jauge .f-ligne b { color: var(--encre-2); font-size: 15px; }
 .f-jauge.flou i { background: repeating-linear-gradient(-45deg, var(--neon-aqua) 0 5px, #8EDFD6 5px 10px); }
 .t-flou { color: var(--encre-2); font-size: 14px; }
+
+/* ===== étape 6 : Empire, Banque, Missions, Équipe, Réglages ===== */
+.f-h2 { display: flex; justify-content: space-between; align-items: baseline; margin: 18px 0 8px; }
+.f-h2 h3 { font: 400 20px/1.1 var(--f-titre); margin: 0; color: var(--encre); text-transform: none; letter-spacing: 0; }
+.f-h2 small { font: 600 13px/1 var(--f-ui); color: var(--encre-2); }
+.f-ligne.sans { border: 0; align-items: center; }
+.kpis3 { display: grid; grid-template-columns: 1.2fr 1.2fr .8fr; gap: 8px; margin-bottom: 12px; }
+.kpis3 b, .bilan b { display: block; font: 700 22px/1.1 var(--f-ui); color: var(--encre); }
+.kpis3 small, .bilan small { font: 600 13px/1.2 var(--f-ui); color: var(--encre-2); }
+.bilan { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-bottom: 12px; }
+.bilan b.neg { color: var(--rouge); }
+.bilan b.pos { color: #17803A; }
+.st-liste { display: grid; gap: 10px; }
+.st-ligne { display: grid; grid-template-columns: 64px 1fr auto; gap: 12px; align-items: center; padding: 10px 18px 10px 10px; border: 0; border-radius: 44px; background: var(--caisson); color: var(--caisson-texte); text-align: left; cursor: pointer; font-family: var(--f-ui); -webkit-tap-highlight-color: transparent; }
+.st-ligne:active { transform: scale(.98); }
+.vignette { width: 64px; height: 64px; border-radius: 50%; overflow: hidden; background: var(--carrelage); display: grid; place-items: center; }
+.vignette svg { width: 100%; height: auto; display: block; }
+.st-mil { display: grid; gap: 3px; min-width: 0; }
+.st-nom { font: 400 18px/1.1 var(--f-titre); text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-mil small { font: 500 13px/1.2 var(--f-ui); color: #BFC4C6; }
+.st-etat { display: flex; align-items: center; gap: 5px; font: 700 13.5px/1.2 var(--f-ui); }
+.st-etat.critique { color: #FF7B72; } .st-etat.ok { color: #6FD98A; } .st-etat.opportunite { color: #FFC24D; }
+.st-ca { display: grid; justify-items: end; }
+.st-ca b { font: 700 17px/1.1 var(--f-ui); }
+.st-ca small { font: 500 12px/1.2 var(--f-ui); color: #BFC4C6; }
+.courbe { width: 100%; height: 96px; display: block; }
+.courbe-l { display: flex; justify-content: space-between; font: 600 12px/1 var(--f-ui); color: var(--encre-2); margin-top: 4px; border-top: 1px solid var(--filet); padding-top: 4px; }
+.segment.petit { display: inline-grid; grid-template-columns: repeat(4, auto); margin: 0; }
+.segment.petit button { padding: 0 12px; font-size: 15px; }
+.prets { display: grid; gap: 10px; }
+.pret { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; min-height: 60px; padding: 8px 22px; border: 0; border-radius: 40px; background: var(--caisson); color: var(--caisson-texte); text-align: left; cursor: pointer; font-family: var(--f-ui); }
+.pret b { display: block; font: 700 17px/1.2 var(--f-ui); }
+.pret small { font: 500 13px/1.2 var(--f-ui); color: #BFC4C6; }
+.pret-s { font: 700 14px/1 var(--f-ui); color: var(--neon-aqua); }
+.pret-conf { display: grid; gap: 8px; }
+.titre-joueur span { color: var(--encre-2); }
+.titre-joueur b { color: var(--encre); font-size: 18px; margin-left: 6px; }
+.missions { display: grid; gap: 2px; }
+.mis { display: flex; align-items: center; gap: 12px; min-height: 44px; font: 600 16px/1.25 var(--f-ui); color: var(--encre); }
+.mis.fait s { color: var(--encre-2); }
+.mis.cours { padding: 8px 12px; margin: 4px -12px; border-radius: 16px; background: #FDE8F0; }
+.mis.cours .ic { width: 24px; height: 24px; color: var(--neon-rose); flex: none; }
+.mis.cours small { font: 700 13px/1 var(--f-ui); white-space: nowrap; }
+.mis-col { display: grid; gap: 6px; flex: 1; }
+.jauge.rose { display: block; height: 7px; border-radius: 9px; background: #F4C9D9; overflow: hidden; }
+.jauge.rose i { display: block; height: 100%; background: var(--neon-rose); }
+.mis.verrou { color: #9A9486; }
+.mis.verrou .ic { width: 20px; height: 20px; flex: none; }
+.tampon { display: flex; gap: 8px; align-items: center; margin-top: 10px; padding: 10px 14px; border: 2px dashed var(--neon-rose); border-radius: 14px; font: 700 15px/1.3 var(--f-ui); }
+.rivaux { display: grid; gap: 10px; }
+.rival { display: flex; gap: 12px; align-items: flex-start; }
+.rival > i { width: 16px; height: 16px; border-radius: 50%; flex: none; margin-top: 3px; }
+.rival b { display: block; font: 700 16px/1.2 var(--f-ui); }
+.rival small { font: 500 14px/1.3 var(--f-ui); color: var(--encre-2); }
+.evts { display: grid; gap: 6px; font: 500 14.5px/1.3 var(--f-ui); }
+.evts span { display: flex; align-items: center; gap: 6px; }
+.journal { display: grid; gap: 8px; }
+.jr { display: grid; grid-template-columns: 56px 1fr; gap: 10px; font: 500 14.5px/1.3 var(--f-ui); color: var(--encre); }
+.jr > span:first-child { font-weight: 700; color: var(--encre-2); font-size: 13px; }
+.jr.bad > span:last-child { color: #B42318; }
+.perso-l { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--carrelage); }
+.perso-l > span { flex: 1; min-width: 0; }
+.perso-l b { display: block; font: 700 17px/1.2 var(--f-ui); }
+.perso-l small { font: 500 13.5px/1.3 var(--f-ui); color: var(--encre-2); }
+textarea.code { width: 100%; border: 1px solid var(--filet); border-radius: 12px; padding: 10px; font: 12px/1.3 ui-monospace, monospace; background: var(--carrelage); color: var(--encre); }
