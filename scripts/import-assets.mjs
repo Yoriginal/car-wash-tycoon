@@ -38,7 +38,7 @@ function clean(svg, { tile = false, markers = [] } = {}) {
     svg = svg.replace(/<text x="[\d.]+" y="(1[2-9]\d|[2-9]\d\d)(\.\d+)?"[^>]*>[^<]*<\/text>/g, '');
     svg = svg.replace(/viewBox="0 0 150 156"/, 'viewBox="0 0 150 118"');
   }
-  for (const [from, to] of markers) svg = svg.split(from).join(to);
+  for (const [from, to] of markers) svg = from instanceof RegExp ? svg.replace(from, to) : svg.split(from).join(to);
   return svg.replace(/\s+\/>/g, '/>').replace(/>\s+</g, '><').trim();
 }
 
@@ -59,7 +59,8 @@ for (const f of each('equipements')) put('equipements', f, { markers: [['>2 j<',
 
 // monde : uniquement ce que la carte et la station utilisent
 const MONDE = {
-  'ma_station.svg': { tile: true, markers: [['>BRUYÈRES<', '>{{NOM}}<']] },
+  // ma station : le picto d'état « ok » du dessin est retiré, le jeu pose le picto de l'état réel
+  'ma_station.svg': { tile: true, markers: [['>BRUYÈRES<', '>{{NOM}}<'], [/<rect x="120\.35"[^>]*\/><path d="M124\.22[^>]*\/>/, '']] },
   'rival_discount_wash.svg': { tile: true }, 'rival_splash_co.svg': { tile: true },
   'fonds_a_ceder.svg': { tile: true }, 'terrain_libre.svg': { tile: true }, 'terrain_etudie.svg': { tile: true },
   'signal_faible.svg': { tile: true },

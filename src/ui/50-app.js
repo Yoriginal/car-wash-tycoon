@@ -118,7 +118,8 @@
   function renderView() {
     const m = $('main');
     const keep = m.scrollTop;
-    if (ui.tab === 'map') m.innerHTML = viewMap();
+    m.classList.toggle('plein', ui.tab === 'map');
+    if (ui.tab === 'map') m.innerHTML = viewMonde();
     else if (ui.tab === 'stations') m.innerHTML = viewStations();
     else if (ui.tab === 'station') m.innerHTML = viewStation(ui.lot);
     else if (ui.tab === 'finances') m.innerHTML = viewFinances();
@@ -126,6 +127,7 @@
     m.scrollTop = keep;
     Dio.detach();
     if (ui.tab === 'finances') bindLoan();
+    if (ui.tab === 'map') mondeAttach();
     liveUpdate();
   }
 
@@ -152,132 +154,9 @@
   function sum(a, f) { return a.reduce((x, y) => x + f(y), 0); }
 
   // ---------------- vue carte ----------------
-  function viewMap() {
-    return `
-      <div class="view-title"><h2>Département de la Mousse</h2><span class="sub">${S.sectors.filter(s => s.revealed).length}/6 secteurs</span></div>
-      <div class="map-wrap">${mapSvg()}</div>
-      <div class="legend">
-        <span><i style="background:var(--turq)"></i>Tes stations</span>
-        <span><i style="background:var(--cream)"></i>Terrain libre</span>
-        <span><i style="background:#ff8a3d"></i>Discount Wash</span>
-        <span><i style="background:#b98cff"></i>Splash &amp; Co</span>
-        <span><i style="background:var(--mustard)"></i>En vente équipé</span>
-      </div>
-      <h3>Terrains connus</h3>
-      <div class="lot-list">${E.LOTS.filter(l => sectorRevealed(l.id)).map(lotRow).join('')}</div>`;
-  }
-  function lotRow(l) {
-    const ls = E.lotState(S, l.id);
-    const own = ls.owner;
-    const color = ls.sale ? 'var(--mustard)' : own ? ownerColor(own) : 'var(--cream)';
-    const right = own === 'player' ? '<span class="chip good">À toi</span>' : own ? `<span class="chip">${esc(ownerName(own))}</span>` : `<span class="pr">${kfmt(ls.sale ? ls.sale.price : E.lotPrice(S, l.id))}</span>`;
-    const z = E.zoneOf(S, l.id);
-    return `<button class="lot-row" data-lot="${l.id}"><span class="dot" style="background:${color}"></span><span class="nm">${esc(l.name)}<div class="meta">${esc(E.STAGES[z.stage].n)} · ${l.slots} empl. · file ${l.q}${ls.studied ? ' · étudié' : ''}</div></span>${right}</button>`;
-  }
-  function mapSvg() {
-    const roads = [
-      [[52, 346], [62, 330], [108, 292], [116, 310]], [[108, 292], [70, 200], [54, 216]], [[70, 200], [98, 206], [220, 196], [248, 204]],
-      [[220, 196], [200, 222], [196, 300], [186, 318]], [[196, 300], [252, 360], [262, 378]], [[70, 200], [70, 62], [40, 66]], [[70, 62], [96, 84], [204, 92], [226, 60], [266, 74]],
-      [[30, 112], [70, 62]], [[220, 196], [226, 60]], [[62, 330], [196, 300]]
-    ];
-    const pl = pts => pts.map(p => p.join(',')).join(' ');
-    let out = `<svg viewBox="0 0 300 400" role="img" aria-label="Carte du département">
-      <defs>
-        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#16264a" stroke-width="0.6"/></pattern>
-        <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="#0b1324"/><line x1="0" y1="0" x2="0" y2="7" stroke="#1c2d4f" stroke-width="3"/></pattern>
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      <rect width="300" height="400" fill="#0a1324"/><rect width="300" height="400" fill="url(#grid)"/>
-      <path d="M300 300 C 270 330, 280 360, 236 400 L300 400 Z" fill="#0d2b4a"/>
-      <path d="M300 300 C 270 330, 280 360, 236 400" fill="none" stroke="#1f5d8c" stroke-width="1.2"/>
-      <path d="M0 150 C 40 160, 30 240, 110 250 S 160 330, 140 400" fill="none" stroke="#173f6b" stroke-width="5" stroke-linecap="round"/>
-      <circle cx="226" cy="60" r="30" fill="none" stroke="#2c4670" stroke-width="1" stroke-dasharray="3 3"/>
-      ${roads.map(r => `<polyline points="${pl(r)}" fill="none" stroke="#36e3d0" stroke-opacity="0.38" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`).join('')}
-      ${E.SECTORS.map(sc => `<rect x="${sc.x}" y="${sc.y}" width="${sc.w}" height="${sc.h}" fill="none" stroke="#2c4670" stroke-width="0.8" stroke-dasharray="4 3"/>`).join('')}`;
-    // zones
-    for (const zd of E.ZONES) {
-      if (!S.sectors[zd.sector].revealed) continue;
-      const z = S.zones.find(x => x.id === zd.id);
-      const r = 10 + z.stage * 4;
-      out += `<circle cx="${zd.x}" cy="${zd.y}" r="${r}" fill="#36e3d0" fill-opacity="${0.05 + z.stage * 0.025}" stroke="#36e3d0" stroke-opacity="0.25"/>`;
-      out += `<text x="${zd.x}" y="${zd.y - r - 4}" text-anchor="middle" font-family="Bungee, Arial Black, sans-serif" font-size="7.5" fill="#fff3d9" opacity="0.92">${esc(zd.name.toUpperCase())}</text>`;
-      if (z.pending) out += `<text x="${zd.x}" y="${zd.y + r + 9}" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-size="8" fill="#ffc94a">● signal</text>`;
-    }
-    // terrains
-    for (const l of E.LOTS) {
-      if (!sectorRevealed(l.id)) continue;
-      const ls = E.lotState(S, l.id);
-      const own = ls.owner;
-      const col = ls.sale ? '#ffc94a' : own ? ownerColor(own) : '#fff3d9';
-      const big = 5 + l.slots * 0.55;
-      out += `<g class="pin" data-lot="${l.id}" role="button" tabindex="0" aria-label="${esc(l.name)}" style="cursor:pointer">
-        <circle cx="${l.x}" cy="${l.y}" r="${big + 9}" fill="transparent"/>
-        <circle cx="${l.x}" cy="${l.y}" r="${big}" fill="${own ? col : '#0a1324'}" stroke="${col}" stroke-width="2" ${own === 'player' ? 'filter="url(#glow)"' : ''}/>`;
-      if (own === 'player') out += `<path d="M${l.x} ${l.y - 4.2}l1.2 2.6 2.8.3-2.1 1.9.6 2.8-2.5-1.4-2.5 1.4.6-2.8-2.1-1.9 2.8-.3z" fill="#0d1729"/>`;
-      else if (own) out += `<text x="${l.x}" y="${l.y + 2.6}" text-anchor="middle" font-family="Bungee, sans-serif" font-size="6.5" fill="#0d1729">${esc(E.RIVALS.find(r => r.id === own).short)}</text>`;
-      else out += `<text x="${l.x}" y="${l.y + 2.8}" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="8" fill="${col}">${l.slots}</text>`;
-      out += `</g>`;
-    }
-    // brouillard
-    for (const sc of E.SECTORS) {
-      if (S.sectors[sc.id].revealed) continue;
-      out += `<g class="fog" data-sector="${sc.id}" role="button" tabindex="0" aria-label="Reconnaître ${esc(sc.name)}" style="cursor:pointer">
-        <rect x="${sc.x + 1}" y="${sc.y + 1}" width="${sc.w - 2}" height="${sc.h - 2}" fill="url(#hatch)" opacity="0.97"/>
-        <text x="${sc.x + sc.w / 2}" y="${sc.y + sc.h / 2 - 6}" text-anchor="middle" font-family="Bungee, sans-serif" font-size="22" fill="#2c4670">?</text>
-        <text x="${sc.x + sc.w / 2}" y="${sc.y + sc.h / 2 + 12}" text-anchor="middle" font-family="Bungee, sans-serif" font-size="7" fill="#9fb2cc">${esc(sc.name.toUpperCase())}</text>
-        <text x="${sc.x + sc.w / 2}" y="${sc.y + sc.h / 2 + 24}" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-size="8.5" fill="#36e3d0">Reconnaître · ${fmt(E.RECON_COST)}</text>
-      </g>`;
-    }
-    return out + '</svg>';
-  }
-
   // ---------------- feuille terrain ----------------
-  function sheetLot(lotId) {
-    const l = E.lotDef(lotId), ls = E.lotState(S, lotId), z = E.zoneOf(S, lotId), zd = E.zoneDef(z.id);
-    const pr = potRange(lotId);
-    const price = ls.sale ? ls.sale.price : E.lotPrice(S, lotId);
-    const comps = Object.values(S.stations).filter(st => E.lotDef(st.lot).zone === z.id && st.lot !== lotId);
-    let html = `<h2>${esc(l.name)}</h2>
-      <div class="row wrap" style="margin-top:6px">${stageChip(lotId)}<span class="chip">${esc(zd.name)}</span>${zd.seasonal ? '<span class="chip warn">Saisonnier</span>' : ''}</div>
-      <div class="facts">
-        <div class="kpi"><div class="v">${l.slots}</div><div class="l">Emplacements</div></div>
-        <div class="kpi"><div class="v">${l.q}</div><div class="l">File max</div></div>
-        <div class="kpi"><div class="v money">${ls.owner && !ls.sale ? '—' : kfmt(price)}</div><div class="l">Prix</div></div>
-      </div>`;
-    if (ls.studied || ls.owner === 'player') {
-      html += `<dl class="kv"><dt>Potentiel de la zone</dt><dd>≈ ${pr.exact} clients/j</dd><dt>Tendance</dt><dd style="font-family:var(--f-body);font-size:14px">${trendText(z)}</dd><dt>Prix de réf. portique / HP</dt><dd>${euro(E.refPrice(S, lotId, 'portique'))} / ${euro(E.refPrice(S, lotId, 'hp'))}</dd></dl>`;
-    } else {
-      html += `<dl class="kv"><dt>Potentiel estimé</dt><dd>${pr.lo} à ${pr.hi} clients/j</dd><dt>Tendance</dt><dd style="font-family:var(--f-body);font-size:14px">Inconnue sans étude</dd></dl>`;
-    }
-    html += `<h3>Concurrence dans la zone</h3>`;
-    if (!comps.length) html += `<p class="sub">Aucune station installée.</p>`;
-    else html += `<div class="stack">${comps.map(st => `<div class="row between"><span>${esc(E.lotDef(st.lot).name)}</span><span class="chip" style="border-color:${ownerColor(st.owner)};color:${ownerColor(st.owner)}">${esc(ownerName(st.owner))}${ls.studied ? ' · ' + st.units.length + ' équip.' : ''}</span></div>`).join('')}</div>`;
-    if (z.pending) html += `<div class="signal" style="margin-top:12px"><b>Signal faible :</b> ${esc(z.pending.signal)}.</div>`;
-    if (ls.sale) html += `<div class="signal" style="margin-top:12px"><b>Vendu équipé :</b> ${ls.sale.units.map(u => E.EQUIP[u.type].name + ' ' + E.EQUIP[u.type].tiers[u.tier].n).join(', ')}.</div>`;
-    html += `<div class="stack" style="margin-top:16px">`;
-    if (ls.owner === 'player') html += `<button class="btn turq block" data-act="open-station" data-lot="${lotId}">Voir la station</button>`;
-    else if (ls.owner) html += `<p class="sub">Propriété de ${esc(ownerName(ls.owner))}. Si elle fait faillite, elle revendra peut-être.</p>`;
-    else {
-      if (!ls.studied) html += `<button class="btn ghost block" data-act="study" data-lot="${lotId}" ${S.cash < E.STUDY_COST ? 'disabled' : ''}>Commander une étude · <span class="price">${fmt(E.STUDY_COST)}</span></button>`;
-      if (S.cash >= price) html += `<button class="btn block" data-act="buy-lot" data-lot="${lotId}">Acheter · <span class="price">${fmt(price)}</span></button>`;
-      else {
-        const need = Math.ceil((price - S.cash + 5000) / 1000) * 1000;
-        const lim = E.creditLimit(S);
-        if (need <= lim) {
-          const rate = E.loanRate(S, need);
-          html += `<button class="btn block" data-act="buy-lot-loan" data-lot="${lotId}" data-amt="${need}">Acheter avec un prêt de <span class="price">${fmt(need)}</span></button>
-          <p class="sub" style="margin:0">Sur 7 ans à ${(rate * 100).toFixed(1).replace('.', ',')} % : ${fmt(E.monthlyPay(need, rate, 7))} par mois.</p>`;
-        } else html += `<button class="btn block" disabled>Acheter · <span class="price">${fmt(price)}</span></button><p class="sub" style="margin:0">Il te manque ${fmt(price - S.cash)} et ta capacité d'emprunt est de ${fmt(lim)}.</p>`;
-      }
-    }
-    html += `</div>`;
-    openSheet(html);
-  }
-  function sheetFog(secId) {
-    const sc = E.SECTORS[secId];
-    openSheet(`<h2>${esc(sc.name)}</h2><p>Secteur inconnu. Une reconnaissance dévoile ses zones, ses terrains et leur potentiel en fourchette large. Les signaux faibles deviennent visibles.</p>
-      <button class="btn block" data-act="reveal" data-sector="${secId}" ${S.cash < E.RECON_COST ? 'disabled' : ''}>Reconnaître · <span class="price">${fmt(E.RECON_COST)}</span></button>`);
-  }
+  function sheetLot(lotId) { ouvrirTerrain(lotId); }
+  function sheetFog(secId) { ouvrirBrouillard(secId); }
 
   // ---------------- vue stations ----------------
   function viewStations() {
@@ -417,6 +296,7 @@
         const g = m.querySelector(`[data-live="g-${st.lot}"]`); if (g) g.style.width = Math.min(100, q / qm * 100) + '%';
       }
     } else if (ui.tab === 'finances') set(m, 'f-cash', fmt(S.cash));
+    else if (ui.tab === 'map') mondeLive();
   }
   function set(root, k, v) { const el = root.querySelector(`[data-live="${k}"]`); if (el && el.textContent !== String(v)) el.textContent = v; }
 
@@ -733,7 +613,7 @@
       if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.pin, .fog')) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
       if (e.key === 'Escape' && ui.sheet && !$('#backdrop [data-act="intro-go"]')) closeSheet();
     });
-    window.addEventListener('resize', () => Dio.resize());
+    window.addEventListener('resize', () => { Dio.resize(); mondeApply(); });
     document.addEventListener('visibilitychange', () => { if (document.hidden) { Save.local(); Save.cloud(true); } });
     window.addEventListener('pagehide', () => Save.local());
   }

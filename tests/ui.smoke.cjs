@@ -72,6 +72,17 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     await pg.click('[data-test="unit-0"]'); await pg.waitForTimeout(300);
     ok(!!(await pg.$('[data-test="revendre"]')), 'fiche équipement ouverte depuis le diorama');
     await pg.screenshot({ path: join(root, 'build/ui-smoke-fiche.png') });
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+
+    // 4. Monde : fiche Terrain et fiche Reconnaissance
+    await pg.click('[data-nav="map"]'); await pg.waitForTimeout(400);
+    await pg.click('[data-test="lot-B"]'); await pg.waitForTimeout(300);
+    ok(!!(await pg.$('[data-test="etudier"]')), 'fiche Terrain ouverte depuis la carte');
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    await pg.$eval('[data-test="fog-1"]', el => el.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    await pg.waitForTimeout(300);
+    ok(!!(await pg.$('[data-test="reconnaitre"]')), 'fiche Reconnaissance ouverte depuis le brouillard');
+    await pg.screenshot({ path: join(root, 'build/ui-smoke-monde.png') });
   } catch (e) { console.error('  ✗ ' + e.message); failed++; }
   finally { await browser.close(); srv.kill(); }
   ok(errors.length === 0, 'aucune erreur JavaScript' + (errors.length ? ' : ' + errors.slice(0, 3).join(' | ') : ''));

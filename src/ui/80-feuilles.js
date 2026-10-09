@@ -224,8 +224,8 @@ function catalogueDefaut(st) {
   tiers.forEach((t, i) => { if (t.price <= S.cash) tier = i; });
   return { type, tier };
 }
-function pretPour(prix) {
-  const need = Math.ceil((prix - Math.max(0, S.cash)) / 1000) * 1000;
+function pretPour(prix, marge = 0) {
+  const need = Math.ceil((prix + marge - Math.max(0, S.cash)) / 1000) * 1000;
   if (need <= 0) return null;
   if (need > E.creditLimit(S)) return { need, refuse: true };
   return { need, mensuel: E.monthlyPay(need, E.loanRate(S, need), 7) };
@@ -356,6 +356,7 @@ function feuilleAct(a, el) {
   const lot = f.lot;
   const st = S.stations[lot];
   let r;
+  if (mondeAct(a)) return;
   switch (a) {
     case 'ouvrir': feuilleOpen(el.dataset.k, { lot }); return;
     case 'annuler': f.confirm = null; feuilleRefresh(); return;

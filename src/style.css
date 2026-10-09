@@ -475,7 +475,7 @@ main#view { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 14px 16px 84
 .f-tete { display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 10px; touch-action: none; padding-bottom: 4px; }
 .f-ic { display: grid; color: var(--encre); }
 .f-ic .ic { width: 26px; height: 26px; }
-.f-titre { font: 400 24px/1.1 var(--f-titre); margin: 0; color: var(--encre); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.f-titre { font: 400 23px/1.12 var(--f-titre); margin: 0; color: var(--encre); overflow-wrap: anywhere; }
 .f-pause { display: inline-flex; align-items: center; gap: 4px; font: 600 13px/1 var(--f-ui); color: var(--encre-2); }
 .f-pause .ic { width: 14px; height: 14px; }
 .f-sous { grid-column: 1 / -1; margin: 6px 0 0; }
@@ -568,3 +568,28 @@ main#view { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 14px 16px 84
 .gamme-legende { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin: 10px 2px 0; font: 600 12px/1 var(--f-ui); color: var(--encre-2); }
 .gamme-legende span { display: inline-flex; align-items: center; gap: 4px; }
 @media (prefers-reduced-motion: reduce) { .sheet.feuille { animation: none; } }
+
+/* ===== étape 5 : Monde ===== */
+main#view.plein { padding: 0; overflow: hidden; position: relative; }
+.monde { position: absolute; inset: 0; touch-action: none; overflow: hidden; background: #E4DCC8; -webkit-user-select: none; user-select: none; }
+.monde svg { width: 100%; height: 100%; display: block; }
+.monde .pin, .monde .fog { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.monde .pin:focus, .monde .fog:focus { outline: none; }
+.monde .pin:focus-visible > rect:first-child { stroke: var(--ambre); stroke-width: 4; }
+.monde .neon-sel { filter: drop-shadow(0 0 4px rgba(20, 191, 174, .8)); }
+.monde .kglow { filter: drop-shadow(0 0 2px rgba(255, 46, 122, .8)); }
+/* fiche Terrain */
+.t-plan { display: flex; gap: 14px; align-items: center; padding: 12px; border-radius: 16px; background: var(--carrelage); margin-bottom: 8px; }
+.t-cases { display: flex; flex-wrap: wrap; gap: 5px; max-width: 46%; }
+.t-cases i { width: 22px; height: 34px; border: 1.6px dashed #6A7276; border-radius: 3px; }
+.t-file { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; margin-top: 4px; }
+.t-file u { width: 12px; height: 8px; border-radius: 6px; background: #C9C3B6; }
+.t-infos { display: grid; gap: 3px; }
+.t-infos b { font: 700 18px/1.15 var(--f-ui); }
+.t-infos small { font: 500 14px/1.25 var(--f-ui); color: var(--encre-2); }
+.t-jauge { padding: 2px 0; }
+.t-jauge .f-ligne { border: 0; padding: 6px 0 4px; }
+.t-jauge .f-ligne span { color: var(--encre); font-weight: 700; font-size: 16px; }
+.t-jauge .f-ligne b { color: var(--encre-2); font-size: 15px; }
+.f-jauge.flou i { background: repeating-linear-gradient(-45deg, var(--neon-aqua) 0 5px, #8EDFD6 5px 10px); }
+.t-flou { color: var(--encre-2); font-size: 14px; }
