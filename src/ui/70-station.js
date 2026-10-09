@@ -167,6 +167,7 @@ function stationLive() {
   const box = $('#scene-svg');
   if (box && box.dataset.sig !== sig) { box.innerHTML = stationSceneSvg(ui.lot); box.dataset.sig = sig; }
   const k = $('#station-kpis');
+  animStation(st);
   if (k) { set(k, 'served', st.day.served); set(k, 'lost', st.day.lost); set(k, 'queue', `${st.q.portique + st.q.hp}/${E.qmaxOf(st)}`); set(k, 'rev', fmt(st.day.rev)); }
 }
 

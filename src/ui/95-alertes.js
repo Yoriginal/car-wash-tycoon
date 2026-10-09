@@ -13,6 +13,10 @@ function instantane() {
   return { pannes, offres: new Set(S.offers.map(o => o.id)), decouvert: S.overdraftDays || 0, log: S.log[0] };
 }
 function evenementsScan() {
+  // l'état ne change qu'à chaque heure de jeu ou action : inutile de comparer à chaque image
+  const cle = `${S.d}|${S.h}|${S.offers.length}|${S.overdraftDays}|${S.log.length}|${S.log[0] && S.log[0].text}`;
+  if (ui.prev && ui.scanCle === cle) return;
+  ui.scanCle = cle;
   const prev = ui.prev;
   const now = instantane();
   ui.prev = now;

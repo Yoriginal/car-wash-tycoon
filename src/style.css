@@ -727,3 +727,12 @@ textarea.code { width: 100%; border: 1px solid var(--filet); border-radius: 12px
 .coach-main.haut { animation-name: main-pointe-bas; }
 @keyframes main-pointe-bas { 0%, 100% { translate: 0 0; } 50% { translate: 0 8px; } }
 @media (prefers-reduced-motion: reduce) { .coach-main { animation: none; } .coach-bulle { transition: none; } }
+
+/* ===== étape 9 : animations ===== */
+.vol-piece { position: absolute; z-index: 25; width: 24px; height: 24px; pointer-events: none; }
+.vol-piece svg { display: block; }
+.gain-txt { position: absolute; z-index: 25; pointer-events: none; font: 700 15px/1 var(--f-ui); color: #17803A; background: rgba(255, 255, 255, .92); padding: 3px 6px; border-radius: 8px; }
+.voiture-perdue { pointer-events: none; }
+.diorama2 .etat-panne > g { animation: panne-grs 2.2s steps(1) infinite; }
+@keyframes panne-grs { 0%, 100% { opacity: 1; } 6% { opacity: .72; } 9% { opacity: 1; } 48% { opacity: .8; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .diorama2 .etat-panne > g { animation: none; } }
