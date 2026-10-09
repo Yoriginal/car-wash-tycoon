@@ -10,6 +10,10 @@ const fixture = readFileSync(join(__dirname, 'fixtures/save-v1.1.json'), 'utf8')
 const F = JSON.parse(fixture);
 
 let failed = 0;
+// ferme les pop-ups de moments forts (objectif atteint, panne...) par leur dernière action
+async function popups(pg) {
+  for (let n = 0; n < 6 && await pg.$('.sheet.popup'); n++) { await pg.click('.sheet.popup .f-actions .action:last-child'); await pg.waitForTimeout(400); }
+}
 const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error('  ✗ ' + m); failed++; } };
 
 (async () => {
@@ -49,10 +53,15 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     await pg.waitForTimeout(300);
     const units = await pg.evaluate(() => __CWT.S.stations.A.units.length);
     ok(units === 1, 'premier équipement installé');
+    await pg.waitForTimeout(300);
+    ok(!!(await pg.$('[data-test="pop-continuer"]')), 'pop-up « Mission accomplie » affichée');
+    await popups(pg);
     await pg.click('[data-test="speed-10"]');
     await pg.waitForTimeout(5000);
     const rev = await pg.evaluate(() => __CWT.S.totals.rev);
     ok(rev > 0, `première vente encaissée (${Math.round(rev)} €)`);
+    await pg.click('[data-test="speed-0"]').catch(() => {});
+    await popups(pg);
     await pg.screenshot({ path: join(root, 'build/ui-smoke.png') });
 
     // 3. feuilles : prix au curseur, entretien, fiche équipement, fermeture en touchant le décor
@@ -86,6 +95,7 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
 
     // 5. dock : Empire, Banque (emprunt), Missions et Réglages en feuilles
+    await popups(pg);
     await pg.click('[data-nav="stations"]'); await pg.waitForTimeout(300);
     ok(!!(await pg.$('[data-test="empire-A"]')), 'Empire liste la station');
     await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
@@ -97,6 +107,9 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     await pg.click('[data-nav="journal"]'); await pg.waitForTimeout(300);
     await pg.click('[data-test="reglages"]'); await pg.waitForTimeout(300);
     ok(!!(await pg.$('[data-fa="reg-exporter"]')), 'Réglages ouverts depuis Missions');
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    await pg.click('#hud-bell'); await pg.waitForTimeout(300);
+    ok(!!(await pg.$('.sheet.feuille .alertes, .sheet.feuille .f-corps')), 'cloche : liste des alertes');
   } catch (e) { console.error('  ✗ ' + e.message); failed++; }
   finally { await browser.close(); srv.kill(); }
   ok(errors.length === 0, 'aucune erreur JavaScript' + (errors.length ? ' : ' + errors.slice(0, 3).join(' | ') : ''));

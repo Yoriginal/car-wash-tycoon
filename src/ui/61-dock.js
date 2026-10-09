@@ -31,6 +31,7 @@ function dockRender() {
   const active = ouverte || (ui.sheet ? '' : ui.tab === 'map' ? 'map' : '');
   for (const b of $$('#nav .nav-btn')) b.classList.toggle('actif', b.dataset.nav === active);
   $('#tools').hidden = ui.tab !== 'station';
+  dockPictos();
   const h = $('#dock').offsetHeight;
   if (h && h !== ui.dockH) { ui.dockH = h; document.documentElement.style.setProperty('--dock-h', h + 'px'); }
   dialRender();

@@ -357,7 +357,7 @@ function feuilleAct(a, el) {
   const lot = f.lot;
   const st = S.stations[lot];
   let r;
-  if (mondeAct(a) || ecransAct(a, el)) return;
+  if (mondeAct(a) || ecransAct(a, el) || popupAct(a, el)) return;
   switch (a) {
     case 'ouvrir': feuilleOpen(el.dataset.k, { lot }); return;
     case 'annuler': f.confirm = null; feuilleRefresh(); return;

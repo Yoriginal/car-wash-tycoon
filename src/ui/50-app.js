@@ -318,6 +318,7 @@
     ui.sheet = null; ui.f = null;
     paused = ui.wasPaused;
     if (!silent) renderAll(); else dockRender();
+    setTimeout(popupNext, 250);
   }
 
   // ---------------- actions ----------------
@@ -402,12 +403,15 @@
       const fresh = [];
       for (const l of S.log) { if (l === ui.logTop) break; fresh.push(l); }
       ui.logTop = S.log[0];
-      for (const l of fresh.reverse()) if (l.kind !== 'info' || /Neige|Monnayeur/.test(l.text)) toast(l.text, l.kind);
+      // les moments forts ont leur pop-up : pas de toast en double
+      for (const l of fresh.reverse()) if ((l.kind !== 'info' || /Neige|Monnayeur/.test(l.text)) && !/^Panne :|^La parcelle voisine|^Alerte de la banque|forcé la vente|^Faillite/.test(l.text)) toast(l.text, l.kind);
       if (!ui.sheet && ui.tab !== 'finances') forceRender = true;
     }
     if (S.d !== ui.lastDay) { ui.lastDay = S.d; if (ui.tab === 'station' || ui.tab === 'stations') forceRender = true; }
-    for (const t of E.checkObjectives(S)) toast('Objectif rempli : ' + t, 'goal');
+    for (const t of E.checkObjectives(S)) popupMission(t);
+    evenementsScan();
     if (S.over) gameOver();
+    else popupNext();
     if (forceRender && !ui.sheet) renderView();
     if (forceRender) renderHud();
   }
@@ -428,9 +432,9 @@
   }
   function gameOver() {
     if (ui.goShown) return; ui.goShown = true;
-    openSheet(`<div class="intro"><div class="intro-logo"><div class="script" style="color:var(--cherry)">Faillite</div></div>
-      <p>La banque a fermé le robinet. Ton empire a tenu ${S.d} jours et encaissé ${fmt(S.totals.rev)} de chiffre d'affaires.</p>
-      <button class="btn block" data-act="reset">Nouvelle partie</button></div>`, { center: true, noClose: true });
+    closeSheet(true);
+    openSheet(popupHtml({ k: 'faillite' }), { center: true, noClose: true });
+    $('#backdrop .sheet').classList.add('popup');
   }
 
   // ---------------- diorama animé ----------------
@@ -595,7 +599,8 @@
       const tool = e.target.closest('[data-tool]');
       if (tool) { toolOpen(tool.dataset.tool); return; }
       if (e.target.closest('#hud-cash')) { navOpen('finances'); return; }
-      if (e.target.closest('#hud-bell') || e.target.closest('#objective')) { navOpen('journal'); return; }
+      if (e.target.closest('#hud-bell')) { feuilleOpen('alertes'); return; }
+      if (e.target.closest('#objective')) { navOpen('journal'); return; }
       if (e.target.closest('#hud-meteo')) { meteoSheet(); return; }
       const fog = e.target.closest('.fog');
       if (fog) { sheetFog(+fog.dataset.sector); return; }
@@ -607,32 +612,33 @@
       if (sa && ui.tab === 'station' && stationAct(sa.dataset.sa, sa)) return;
       const a = e.target.closest('[data-act]');
       if (a && !a.disabled) { act(a.dataset.act, a); return; }
-      if (e.target.id === 'backdrop' && ui.sheet && !$('#backdrop [data-act="intro-go"]') && !$('#backdrop [data-act="reset"]')) closeSheet();
+      if (e.target.id === 'backdrop' && ui.sheet && !$('#backdrop [data-act="intro-go"]') && !$('#backdrop [data-act="reset"]') && !$('#backdrop [data-fa="pop-reset"]')) closeSheet();
     });
     document.addEventListener('keydown', e => {
       if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.pin, .fog')) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
-      if (e.key === 'Escape' && ui.sheet && !$('#backdrop [data-act="intro-go"]')) closeSheet();
+      if (e.key === 'Escape' && ui.sheet && !$('#backdrop [data-act="intro-go"]') && !$('#backdrop [data-fa="pop-reset"]')) closeSheet();
     });
     window.addEventListener('resize', () => { Dio.resize(); mondeApply(); });
     document.addEventListener('visibilitychange', () => { if (document.hidden) { Save.local(); Save.cloud(true); } });
     window.addEventListener('pagehide', () => Save.local());
   }
 
+
   function offlineWelcome() {
     const off = E.offline(S, Date.now());
     if (!off || off.gain <= 0) return false;
     S.cash += off.gain;
     S.lastSeen = Date.now();
-    const hh = Math.floor(off.hours), mm = Math.round((off.hours - hh) * 60);
-    openSheet(`<div class="intro"><div class="intro-logo"><div class="script">Bon retour</div></div>
-      <p>Pendant ton absence (${hh ? hh + ' h ' : ''}${mm} min), tes stations ont continué de tourner à mi-régime.</p>
-      <p style="text-align:center"><b class="num" style="font-size:32px;color:var(--mustard)">+${fmt(off.gain)}</b></p>
-      <button class="btn block" data-act="offline-ok">Reprendre</button></div>`, { center: true, noClose: true });
+    ui.pops = ui.pops || [];
+    ui.pops.unshift({ k: 'absence', hours: off.hours, gain: off.gain });
+    popupNext();
     return true;
   }
+
   // remplace la partie en cours par une partie chargée
   function restore(st, welcome) {
     S = st;
+    ui.prev = null; ui.pops = [];
     ui.logTop = S.log[0]; ui.goShown = false; ui.confirm = null;
     closeSheet(true);
     paused = S.mode === 'turn';

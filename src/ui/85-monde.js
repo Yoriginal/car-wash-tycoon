@@ -46,6 +46,7 @@ function lotSvg(l) {
   const ls = E.lotState(S, l.id);
   const own = ls.owner;
   const sel = ui.f && ui.f.kind === 'terrain' && ui.f.lot === l.id;
+  const cible = !sel && !ui.sheet && mondeCible === l.id;
   let inner, label;
   if (own === 'player') {
     const st = S.stations[l.id];
@@ -64,7 +65,7 @@ function lotSvg(l) {
   }
   return `<g class="pin${sel ? ' choisi' : ''}" data-lot="${l.id}" data-test="lot-${l.id}" role="button" tabindex="0" aria-label="${escSvg(label)}" transform="${tileAt(l.x, l.y)}">
     <rect x="10" y="0" width="130" height="100" fill="transparent"/>
-    ${sel ? `<rect class="neon-sel" x="8" y="-2" width="134" height="104" rx="16" fill="none" stroke="#14BFAE" stroke-width="4"/>` : ''}
+    ${sel || cible ? `<rect class="neon-sel${cible ? ' neon-cible' : ''}" x="8" y="-2" width="134" height="104" rx="16" fill="none" stroke="#14BFAE" stroke-width="4"/>` : ''}
     ${inner}
   </g>`;
 }
@@ -112,7 +113,9 @@ function voituresSvg() {
   return out;
 }
 
+let mondeCible = null;
 function mondeObjetsSvg() {
+  mondeCible = cibleMonde();
   let out = '';
   for (const zd of E.ZONES) if (sectorOk(zd.sector)) out += zoneSvg(zd);
   const lots = E.LOTS.filter(l => sectorRevealed(l.id)).sort((a, b) => a.y - b.y);
@@ -123,7 +126,7 @@ function mondeObjetsSvg() {
 }
 function mondeSig() {
   return JSON.stringify([S.sectors.map(s => s.revealed), S.zones.map(z => [z.stage, !!z.pending]), S.lots.map(l => [l.owner, l.studied, !!l.sale]),
-    Object.values(S.stations).filter(st => st.owner === 'player').map(st => etatStation(st)), ui.f && ui.f.kind === 'terrain' ? ui.f.lot : '']);
+    Object.values(S.stations).filter(st => st.owner === 'player').map(st => etatStation(st)), ui.f && ui.f.kind === 'terrain' ? ui.f.lot : '', cibleMonde(), !!ui.sheet]);
 }
 
 function viewMonde() {

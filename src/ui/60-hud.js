@@ -40,13 +40,5 @@ function hudRender() {
   badge.hidden = !n;
 }
 
-// compteur de la cloche (affiné à l'étape 7) : pannes, files pleines, offres en cours
-function alertCount() {
-  let n = 0;
-  for (const st of Object.values(S.stations)) {
-    if (st.owner !== 'player') continue;
-    n += st.units.filter(u => u.down > 0).length;
-    if (st.q.portique + st.q.hp >= E.qmaxOf(st)) n++;
-  }
-  return n + S.offers.length + (S.cash < -E.OVERDRAFT ? 1 : 0);
-}
+// compteur de la cloche : alertes à traiter (pannes, files pleines, découvert, offres)
+function alertCount() { return alertesListe().filter(a => a.compte).length; }

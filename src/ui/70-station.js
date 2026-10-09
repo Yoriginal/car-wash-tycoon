@@ -42,7 +42,7 @@ function enseigneSvg(st, broken) {
   </g>`;
 }
 
-function postesSvg(st) {
+function postesSvg(st, cible) {
   const busyLeft = { portique: st.cur.served.portique, hp: st.cur.served.hp };
   let x = ST.X0 + 6, out = '', i = 0;
   const k = ST.POSTE_H / 150;
@@ -56,6 +56,7 @@ function postesSvg(st) {
     out += `<g class="poste etat-${state}" data-sa="unit" data-i="${idx}" data-test="unit-${idx}" role="button" aria-label="${E.EQUIP[u.type].name} ${E.EQUIP[u.type].tiers[u.tier].n}, ${state}">
       ${n > 1 ? `<rect x="${x}" y="${ST.BAY_Y}" width="${w}" height="${ST.POSTE_H * 124 / 150}" fill="#E7E3DB"/><rect x="${x}" y="${ST.BAY_Y + ST.POSTE_H * 124 / 150}" width="${w}" height="${ST.POSTE_H * 26 / 150}" fill="#CFCBC3"/>` : ''}
       <g transform="translate(${sx},${ST.BAY_Y}) scale(${k})">${innerSvg(sprite(name, { J: jours }))}</g>
+      ${cible && cible.t === 'unit' && cible.i === idx ? `<rect class="neon-cible" x="${x + 3}" y="${ST.BAY_Y - 6}" width="${w - 6}" height="${ST.POSTE_H + 4}" rx="12" fill="none" stroke="#14BFAE" stroke-width="3"/>` : ''}
       ${i ? `<line x1="${x}" y1="${ST.BAY_Y}" x2="${x}" y2="${ST.BAY_Y + ST.POSTE_H}" stroke="#9A9486" stroke-width="1.4"/>` : ''}
     </g>`;
     x += w; i += n;
@@ -64,6 +65,7 @@ function postesSvg(st) {
   for (let f = 0; f < free; f++) {
     out += `<g class="poste libre" data-sa="slot" data-test="slot-free" role="button" aria-label="Emplacement libre : ajouter un équipement">
       <g transform="translate(${x},${ST.BAY_Y}) scale(${k})">${innerSvg(sprite('equipements/emplacement_libre'))}</g>
+      ${cible && cible.t === 'slot' && f === 0 ? `<circle class="neon-cible" cx="${x + ST.POSTE_W / 2}" cy="${ST.BAY_Y + 75 * k}" r="${22 * k + 6}" fill="none" stroke="#14BFAE" stroke-width="3"/>` : ''}
       ${i ? `<line x1="${x}" y1="${ST.BAY_Y}" x2="${x}" y2="${ST.BAY_Y + ST.POSTE_H}" stroke="#9A9486" stroke-width="1.4"/>` : ''}
     </g>`;
     x += ST.POSTE_W; i++;
@@ -73,7 +75,7 @@ function postesSvg(st) {
 // contenu d'un sprite sans sa balise <svg> (pour l'imbriquer dans la scène)
 function innerSvg(svg) { return svg.replace(/^<svg[^>]*>/, '').replace(/<\/svg>\s*$/, ''); }
 
-function fileSvg(st) {
+function fileSvg(st, cible) {
   const q = st.q.portique + st.q.hp, cap = E.qmaxOf(st);
   const full = q >= cap;
   const dots = Math.min(cap, 10);
@@ -82,6 +84,7 @@ function fileSvg(st) {
   return `<g class="panneau-file${full ? ' complet' : ''}" data-sa="file" data-test="file" role="button" aria-label="File d'attente ${q} sur ${cap}">
     <path d="M58,40 V58" stroke="#56656C" stroke-width="3"/>
     <rect x="0" y="0" width="${Math.max(100, 24 + dots * 8.4)}" height="40" rx="20" fill="#1B2024"/>
+    ${cible && cible.t === 'file' ? `<rect class="neon-cible" x="-4" y="-4" width="${Math.max(100, 24 + dots * 8.4) + 8}" height="48" rx="24" fill="none" stroke="#14BFAE" stroke-width="3"/>` : ''}
     <text x="${full ? 30 : 14}" y="16" font-family="Barlow Condensed" font-weight="700" font-size="11" letter-spacing="1" fill="${full ? '#EE3B30' : '#F4F0E6'}">${full ? 'COMPLET' : 'FILE'} ${q}/${cap}</text>
     ${full ? `<g transform="translate(10,4) scale(.6)">${innerSvg(picto('critique'))}</g>` : ''}
     ${dotsSvg}
@@ -108,6 +111,7 @@ function stationSceneSvg(lotId) {
   const broken = st.units.some(u => u.down > 0);
   const offer = S.offers.find(o => o.lot === lotId);
   const emp = st.staff ? S.staff.find(e => e.id === st.staff) : null;
+  const cible = cibleStation(lotId);
   return `<svg class="diorama2" viewBox="0 0 ${W} ${ST.H}" width="${W}" height="${ST.H}" role="img" aria-label="Station ${escSvg(E.lotDef(lotId).name)}">
     <rect width="${W}" height="${ST.GROUND_Y}" fill="${night ? '#2B3440' : '#E4EFEC'}"/>
     ${night ? Array.from({ length: 18 }, (_, j) => `<circle cx="${(j * 89 + 23) % W}" cy="${(j * 37) % 120 + 8}" r="1" fill="#F4F0E6" opacity=".7"/>`).join('') : `<g fill="#fff" opacity=".9"><ellipse cx="${W - 120}" cy="30" rx="26" ry="9"/><ellipse cx="${W - 98}" cy="24" rx="16" ry="9"/><ellipse cx="210" cy="52" rx="20" ry="7"/></g>`}
@@ -123,12 +127,12 @@ function stationSceneSvg(lotId) {
     <rect x="${ST.X0}" y="${ST.ROOF_Y}" width="${bw}" height="${ST.BAY_Y - ST.ROOF_Y}" fill="#FFFFFF" stroke="#9A9486" stroke-width="1"/>
     <path d="M${ST.X0 + 4} ${ST.ROOF_Y + 18} H${ST.X0 + bw - 4}" stroke="#FF2E7A" stroke-width="2.4" class="${night ? 'neon-rose' : ''}"/>
     <rect x="${ST.X0}" y="${ST.BAY_Y}" width="${bw}" height="${ST.GROUND_Y - ST.BAY_Y}" fill="#B8B2A6"/>
-    ${postesSvg(st)}
+    ${postesSvg(st, cible)}
     ${night ? `<rect x="${ST.X0}" y="${ST.BAY_Y}" width="${bw}" height="${ST.POSTE_H}" fill="#1B2024" opacity=".35" pointer-events="none"/>` : ''}
     ${offer ? `<g class="a-vendre" data-sa="offre" role="button" aria-label="Parcelle voisine à vendre"><rect x="${ST.X0 + bw + 22}" y="${ST.BAY_Y + 20}" width="56" height="70" fill="none" stroke="#6A7276" stroke-width="1.4" stroke-dasharray="5 4"/><rect x="${ST.X0 + bw + 14}" y="${ST.BAY_Y}" width="72" height="22" rx="11" fill="#1B2024"/><text x="${ST.X0 + bw + 50}" y="${ST.BAY_Y + 15}" text-anchor="middle" font-family="Barlow Condensed" font-weight="700" font-size="10.5" letter-spacing=".8" fill="#F4F0E6">À VENDRE</text><g transform="translate(${ST.X0 + bw + 40},${ST.BAY_Y + 46}) scale(.9)">${innerSvg(picto('opportunite'))}</g></g>` : ''}
     ${enseigneSvg(st, broken)}
     ${emp ? `<g class="employe" data-sa="employe" role="button" aria-label="Employé ${escSvg(emp.name)}" transform="translate(${ST.X0 + bw - 26},${ST.GROUND_Y - 2})"><circle cx="10" cy="6" r="6" fill="#E9C9A8"/><path d="M2 30 V18 Q2 12 10 12 Q18 12 18 18 V30 Z" fill="#14BFAE"/><rect x="4" y="0" width="12" height="4" rx="2" fill="#1B2024"/></g>` : ''}
-    <g transform="translate(14,${ST.LANE_Y + 2})">${fileSvg(st)}</g>
+    <g transform="translate(14,${ST.LANE_Y + 2})">${fileSvg(st, cible)}</g>
     <g class="file-voitures">${queueCarsSvg(st, W)}</g>
   </svg>`;
 }
@@ -147,7 +151,7 @@ function stationSig(lotId) {
   const busyLeft = { portique: st.cur.served.portique, hp: st.cur.served.hp };
   return [E.slotsOf(st), stationOpen(), st.staff, S.offers.some(o => o.lot === lotId), st.prices.portique, st.prices.hp, E.zoneOf(S, lotId).stage,
     st.units.map(u => u.type + u.tier + unitState(st, u, busyLeft) + (u.down > 0 ? Math.ceil(u.down / 24) : '')).join(','),
-    st.q.portique + st.q.hp].join('|');
+    st.q.portique + st.q.hp, JSON.stringify(cibleStation(lotId))].join('|');
 }
 function stationViewHtml(lotId) {
   const st = S.stations[lotId];

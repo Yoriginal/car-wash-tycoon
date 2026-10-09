@@ -224,6 +224,7 @@ function ecransAct(a, el) {
 // ouverture depuis le dock et le HUD
 const NAV_FEUILLE = { stations: 'empire', journal: 'missions', finances: 'banque' };
 function navOpen(id) {
+  if (id === 'journal') ui.missionNew = false;
   if (NAV_FEUILLE[id]) { feuilleOpen(NAV_FEUILLE[id], { lot: ui.lot }); dockRender(); return; }
   closeSheet(true); go(id);
 }
