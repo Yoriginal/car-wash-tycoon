@@ -11,19 +11,44 @@ function objProgress(i) {
   }
   return null;
 }
+// Objectif en cours : un anneau de progression sur le rond Missions du dock, et la bulle
+// d'objectif seulement quelques secondes quand un nouvel objectif commence (ou à l'ouverture).
+const OBJ_BULLE_MS = 5000;
 function objRender() {
   const ob = $('#objective');
-  if (S.obj >= E.OBJECTIVES.length) { ob.hidden = true; return; }
-  ob.hidden = false;
+  const fini = S.obj >= E.OBJECTIVES.length;
+  const p = fini ? null : objProgress(S.obj);
+  anneauMissions(fini ? 1 : p ? p.v / p.max : 0, fini);
+  if (fini) { ob.hidden = true; return; }
+  // nouvel objectif (ou première ouverture) : la bulle apparaît puis se range
+  if (ui.objVu !== S.obj) { ui.objVu = S.obj; ui.objJusqua = performance.now() + OBJ_BULLE_MS; }
+  const visible = performance.now() < (ui.objJusqua || 0);
+  ob.hidden = !visible;
+  if (!visible) return;
   if (!ob.dataset.ready) { ob.querySelector('.obj-ic').innerHTML = icon('target'); ob.dataset.ready = '1'; }
   const t = E.OBJECTIVES[S.obj].t;
   const txt = ob.querySelector('.txt');
   if (txt.textContent !== t) txt.textContent = t;
-  const p = objProgress(S.obj);
   const j = ob.querySelector('.jauge');
   j.hidden = !p;
   ob.querySelector('.obj-val').textContent = p ? p.t : `${S.obj + 1} / ${E.OBJECTIVES.length}`;
   if (p) j.firstElementChild.style.width = Math.round(100 * p.v / p.max) + '%';
+}
+// anneau rose autour du rond Missions : progression de l'objectif en cours
+function anneauMissions(part, fini) {
+  const rond = $('#nav [data-nav="journal"] .rond');
+  if (!rond) return;
+  let a = rond.querySelector('.anneau');
+  if (!a) {
+    rond.insertAdjacentHTML('beforeend', `<svg class="anneau" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24" fill="none" stroke="#3A4146" stroke-width="3"/><circle class="anneau-p" cx="26" cy="26" r="24" fill="none" stroke="#FF2E7A" stroke-width="3" stroke-linecap="round" stroke-dasharray="150.8" transform="rotate(-90 26 26)"/></svg>`);
+    a = rond.querySelector('.anneau');
+  }
+  const off = (150.8 * (1 - Math.max(0, Math.min(1, part)))).toFixed(1);
+  const c = a.querySelector('.anneau-p');
+  if (c.getAttribute('stroke-dashoffset') !== off) c.setAttribute('stroke-dashoffset', off);
+  const btn = rond.closest('.nav-btn');
+  const lib = fini ? 'Missions : tous les objectifs sont remplis' : `Missions : ${E.OBJECTIVES[S.obj].t}`;
+  if (btn.getAttribute('aria-label') !== lib) btn.setAttribute('aria-label', lib);
 }
 // fiche météo : effet du temps et des événements sur la demande
 function meteoSheet() {

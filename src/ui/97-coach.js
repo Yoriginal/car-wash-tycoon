@@ -62,8 +62,8 @@ const TUTO = [
     fait: () => S.sectors.filter(s => s.revealed).length >= 2 || S.cash < E.RECON_COST
   },
   { // 7 · fin
-    cible: () => ui.sheet ? null : '#objective',
-    texte: () => 'Ton prochain objectif est toujours ici, en bas. Le reste, c\'est toi le patron. Bonne route !',
+    cible: () => ui.sheet ? null : '[data-nav="journal"]',
+    texte: () => 'Ton objectif en cours est dans Missions : l\'anneau rose montre ta progression. Le reste, c\'est toi le patron. Bonne route !',
     ok: 'C\'est parti',
     fait: () => false
   }

@@ -154,7 +154,7 @@ function stationMois(st) {
 function stationKpisHtml(st) {
   const m = stationMois(st);
   return `<div class="kpi2"><span class="ic vert">${ASSETS['icones/car']}</span><span><b class="num" data-live="served">${m.lavages.toLocaleString('fr-FR')}</b><small>lavages</small></span></div>
-    <div class="kpi2"><span class="ic rouge">${ASSETS['icones/carout']}</span><span><b class="num" data-live="lost">${m.perdus.toLocaleString('fr-FR')}</b><small>perdus</small></span></div>
+    <div class="kpi2"><span class="ic rouge">${ASSETS['icones/carout']}</span><span><b class="num" data-live="lost">${m.perdus.toLocaleString('fr-FR')}</b><small>repartis</small></span></div>
     <div class="kpi2"><span class="ic ambre">${coin(22)}</span><span><b class="num" data-live="rev">${kfmt(m.rev)}</b><small>CA</small></span></div>
     <div class="kpi2"><span class="ic">${ASSETS['icones/up']}</span><span><b class="num" data-live="net">${kfmt(m.net)}</b><small>résultat</small></span></div>
     <p class="kpis2-l">Sur 30 jours glissants</p>`;

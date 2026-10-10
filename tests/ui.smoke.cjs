@@ -105,6 +105,7 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     await popups(pg);
     await pg.click('[data-nav="stations"]'); await pg.waitForTimeout(300);
     ok(!!(await pg.$('[data-test="empire-A"]')), 'Empire liste la station');
+    ok(await pg.evaluate(() => !!document.querySelector('#nav [data-nav="journal"] .anneau') && document.querySelector('#objective').hidden), 'objectif : anneau sur Missions, bulle rangée');
     await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
     await pg.click('[data-nav="finances"]'); await pg.waitForTimeout(300);
     const cash0 = await pg.evaluate(() => __CWT.S.cash);

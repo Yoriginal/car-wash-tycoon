@@ -313,7 +313,7 @@ FEUILLES.station = ({ lot, confirm }) => {
     ${ligne('File d\'attente max.', `${E.qmaxOf(st)} voitures`)}
     ${ligne('CA / mois', fmt(rev))}
     ${ligne('Résultat / mois', signed(net), net >= 0 ? '' : 'neg')}
-    ${ligne('Clients perdus / mois', lost)}
+    ${ligne('Repartis (file pleine) / mois', lost)}
   </div>`;
   let actions = '';
   if (offre) {
@@ -360,7 +360,7 @@ FEUILLES.file = ({ lot }) => {
   else conseil = 'La file s\'écoule bien : aucun client perdu ce mois-ci.';
   const corps = `<div class="f-lignes">
     ${ligne('En file maintenant', `${q} / ${cap}`)}
-    ${ligne('Clients perdus / mois', lost7.toLocaleString('fr-FR'))}
+    ${ligne('Repartis (file pleine) / mois', lost7.toLocaleString('fr-FR'))}
     ${ligne('Capacité en marche', `${capH} lavages/h`)}
   </div><p class="f-texte">${lost7 > 0 ? picto('critique', 18) : picto('ok', 18)} ${conseil}</p>`;
   return feuille({ ic: 'queue', titre: 'File d\'attente', sous: esc(stationLabel(lot)), corps, actions });

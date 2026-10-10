@@ -56,6 +56,9 @@ mise en ligne arrive sur son téléphone, donc **une version ne doit jamais cass
 - Carte en villes : chaque case = une ville différente, avec 3 à 6 emplacements selon sa taille
   (refonte des zones et terrains du moteur, migration des terrains existants).
 - Nom de station dans la sauvegarde (aujourd'hui dans `cwt-ui-v1`, à migrer dans `S`).
+- Clients perdus réalistes : compter aussi les clients découragés par la file (aujourd'hui ils vont
+  « ailleurs » sans être comptés) et par le prix ; l'indicateur actuel ne compte que les clients
+  repartis d'une file pleine (souvent 0 quand les postes ont de la marge).
 
 ## Feuille de route (idées validées avec Yoann)
 - Marketing et fidélisation : cartes, abonnements, avis Google.

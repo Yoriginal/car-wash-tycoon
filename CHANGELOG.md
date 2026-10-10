@@ -23,6 +23,9 @@ Format : `MAJEUR.MINEUR.CORRECTIF`
 - Banque renommée Finances ; tendance de la trésorerie (résultat sur 30 jours) recalculée une fois
   par semaine de jeu pour ne plus bouger avec le compteur.
 - Pannes en simple message (et dans la cloche), sans pop-up à valider.
+- Objectif en cours : anneau de progression rose autour du rond Missions ; la bulle d'objectif
+  n'apparaît que 5 secondes quand un nouvel objectif commence.
+- Indicateur « perdus » renommé « repartis » (clients partis d'une file pleine).
 - Nommer sa station à l'achat d'un terrain, et la renommer depuis le panneau Station.
 - Moteur et format de sauvegarde inchangés : les parties en cours continuent telles quelles.
 

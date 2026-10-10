@@ -742,3 +742,10 @@ textarea.code { width: 100%; border: 1px solid var(--filet); border-radius: 12px
 .champ { width: 100%; min-height: 48px; margin-top: 8px; padding: 0 16px; border: 2px solid var(--encre); border-radius: 14px; background: var(--surface); color: var(--encre); font: 700 20px/1 var(--f-ui); }
 .champ:focus { outline: none; box-shadow: 0 0 0 3px var(--neon-aqua); }
 .toast .picto { vertical-align: -4px; margin-right: 6px; }
+
+/* ===== objectif : anneau sur le rond Missions, bulle passagère ===== */
+.nav-btn .rond .anneau { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); pointer-events: none; }
+.anneau-p { transition: stroke-dashoffset .6s ease; }
+.objectif:not([hidden]) { animation: obj-entre .3s ease-out; }
+@keyframes obj-entre { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .objectif:not([hidden]) { animation: none; } .anneau-p { transition: none; } }
