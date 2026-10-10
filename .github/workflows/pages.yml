@@ -1,13 +1,13 @@
 # Publication GitHub Pages, lancée depuis main quand les tests réussissent sur main ou sur la branche d'aperçu.
 #     /         -> le jeu (branche main)
-#     /preview/ -> l'aperçu (branche feat/refonte-ui, si elle existe et si son build réussit)
+#     /preview/ -> l'aperçu (branche PREVIEW_BRANCH, si elle existe et si son build réussit)
 name: Publication
 
 on:
   workflow_run:
     workflows: [Tests]
     types: [completed]
-    branches: [main, feat/refonte-ui]
+    branches: [main, feat/refonte-ui, feat/v3-moteur]
   workflow_dispatch:
 
 permissions:
@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PREVIEW_BRANCH: feat/refonte-ui
+  PREVIEW_BRANCH: feat/v3-moteur
 
 jobs:
   build-site:
