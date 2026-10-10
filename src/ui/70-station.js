@@ -25,11 +25,17 @@ function unitState(st, u) {
   return st.day.served > 0 || hier > 0 ? 'actif' : 'arret';
 }
 function stationOpen() { return S.h >= E.OPEN && S.h < E.CLOSE; }
-// nom choisi par le joueur (préférence d'interface cwt-ui-v1, jamais dans la sauvegarde), sinon nom de la zone
+// nom choisi par le joueur (dans la sauvegarde depuis la v3), sinon nom de la zone
 function stationNom(lotId) {
   const st = S.stations[lotId];
-  const n = st && st.owner === 'player' && (Prefs.get().noms || {})[lotId];
-  return n || null;
+  return (st && st.owner === 'player' && st.name) || null;
+}
+// noms donnés avec la 2.0 (gardés dans les préférences d'interface) : repris une fois dans la sauvegarde
+function nomsVersSauvegarde() {
+  const p = Prefs.get();
+  if (!p.noms) return;
+  for (const [lot, n] of Object.entries(p.noms)) if (S.stations[lot] && !S.stations[lot].name) E.renameStation(S, lot, n);
+  delete p.noms; Prefs.save(); Save.touch();
 }
 function stationLabel(lotId) { return stationNom(lotId) || E.zoneDef(E.lotDef(lotId).zone).name.replace(/^ZA du /, 'ZA ').replace(/^Porte de /, ''); }
 
@@ -147,14 +153,16 @@ function stationSceneSvg(lotId) {
 // indicateurs mensuels : 30 derniers jours glissants (29 jours d'historique + la journée en cours)
 function stationMois(st) {
   const h = st.hist.slice(-29);
-  const somme = k => h.reduce((a, x) => a + x[k], 0) + st.day[k];
+  const somme = k => h.reduce((a, x) => a + (x[k] || 0), 0) + (st.day[k] || 0);
   const rev = somme('rev'), cost = somme('cost');
-  return { lavages: somme('served'), perdus: somme('lost'), rev: Math.round(rev), net: Math.round(rev - cost), jours: h.length + 1 };
+  // clients perdus : repartis d'une file pleine + découragés par la file + découragés par le prix
+  const repartis = Math.round(somme('lost')), file = Math.round(somme('deter')), prix = Math.round(somme('cher'));
+  return { lavages: somme('served'), perdus: repartis + file + prix, repartis, file, prix, rev: Math.round(rev), net: Math.round(rev - cost), jours: h.length + 1 };
 }
 function stationKpisHtml(st) {
   const m = stationMois(st);
   return `<div class="kpi2"><span class="ic vert">${ASSETS['icones/car']}</span><span><b class="num" data-live="served">${m.lavages.toLocaleString('fr-FR')}</b><small>lavages</small></span></div>
-    <div class="kpi2"><span class="ic rouge">${ASSETS['icones/carout']}</span><span><b class="num" data-live="lost">${m.perdus.toLocaleString('fr-FR')}</b><small>repartis</small></span></div>
+    <div class="kpi2"><span class="ic rouge">${ASSETS['icones/carout']}</span><span><b class="num" data-live="lost">${m.perdus.toLocaleString('fr-FR')}</b><small>perdus</small></span></div>
     <div class="kpi2"><span class="ic ambre">${coin(22)}</span><span><b class="num" data-live="rev">${kfmt(m.rev)}</b><small>CA</small></span></div>
     <div class="kpi2"><span class="ic">${ASSETS['icones/up']}</span><span><b class="num" data-live="net">${kfmt(m.net)}</b><small>résultat</small></span></div>
     <p class="kpis2-l">Sur 30 jours glissants</p>`;

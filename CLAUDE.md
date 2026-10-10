@@ -19,8 +19,12 @@ mise en ligne arrive sur son téléphone, donc **une version ne doit jamais cass
 - Ce que l'interface doit retenir (tutoriel vu, info-bulles, son) va dans la clé `cwt-ui-v1`, jamais dans `S`.
 
 ## Canal d'aperçu
-- La branche `feat/refonte-ui` est publiée dans `/preview/` (même appareil, même sauvegarde que le jeu).
-- À chaque ouverture de l'aperçu, la partie est copiée dans `cwt-backup-apercu-1..3` (rotation).
+- La branche d'aperçu (variable `PREVIEW_BRANCH` de `.github/workflows/pages.yml` sur main, aujourd'hui
+  `feat/v3-moteur`) est publiée dans `/preview/`.
+- L'aperçu joue sur une COPIE de la partie (clé `cwt-apercu-save`, créée depuis `cwt-save-v3` à la
+  première ouverture) : un moteur plus récent n'écrit jamais dans la sauvegarde du jeu, qu'une version
+  plus ancienne ne saurait pas relire. Réglages → « Repartir de ma partie du jeu » recopie la partie.
+- À chaque ouverture de l'aperçu, sa partie est copiée dans `cwt-backup-apercu-1..3` (rotation).
 - Le service worker de chaque canal a ses propres caches ; celui du jeu ignore `/preview/`.
 
 ## Sauvegardes (règle la plus importante)
@@ -50,7 +54,8 @@ mise en ligne arrive sur son téléphone, donc **une version ne doit jamais cass
 - Ce qui touche au moteur ou à la sauvegarde attend une version majeure (v3, v4…).
 - Les améliorations d'interface (mineures) sont faites tout de suite.
 
-## Prochaine version majeure (v3, moteur) — demandé par Yoann le 2026-10-10
+## Version majeure v3 (moteur) — demandée par Yoann le 2026-10-10, en cours sur `feat/v3-moteur`
+Faite (3.0.0, format de sauvegarde 4) :
 - Finances : CA annuel comparé aux années précédentes (le moteur ne garde que 60 j par station et
   120 j au global ; il faut un historique annuel dans la sauvegarde, avec migration).
 - Carte en villes : chaque case = une ville différente, avec 3 à 6 emplacements selon sa taille
@@ -59,6 +64,10 @@ mise en ligne arrive sur son téléphone, donc **une version ne doit jamais cass
 - Clients perdus réalistes : compter aussi les clients découragés par la file (aujourd'hui ils vont
   « ailleurs » sans être comptés) et par le prix ; l'indicateur actuel ne compte que les clients
   repartis d'une file pleine (souvent 0 quand les postes ont de la marge).
+Détails techniques : `S.years[année] = { rev, cost, served, perdus }` (12 mois chacun),
+`st.years[année] = { rev, served, perdus }`, `st.name`, `st.day.deter` / `st.day.cher` (valeurs
+attendues, arrondies dans `st.hist`), une ville = une case de `SECTORS` (champ `kind`), terrains placés
+sur une grille 3 × 3 par ville (`cell()`).
 
 ## Feuille de route (idées validées avec Yoann)
 - Marketing et fidélisation : cartes, abonnements, avis Google.

@@ -114,4 +114,65 @@ test('chaque ancien format de sauvegarde a une migration', () => {
   }
 });
 
+console.log('Version 3 (moteur)');
+const fs = require('node:fs');
+const fixture = () => JSON.parse(fs.readFileSync(require('node:path').join(__dirname, 'fixtures/save-v1.1.json'), 'utf8'));
+test('carte en villes : 3 à 6 terrains par ville, identifiants existants conservés', () => {
+  for (const sc of E.SECTORS) {
+    const n = E.LOTS.filter(l => E.sectorOfLot(l.id) === sc.id).length;
+    assert.ok(n >= 3 && n <= 6, `${sc.name} : ${n} terrains`);
+  }
+  for (const id of ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M']) assert.ok(E.lotDef(id), 'terrain ' + id);
+  // aucun terrain ne se chevauche dans sa ville
+  for (const a of E.LOTS) for (const b of E.LOTS) if (a !== b) assert.ok(Math.hypot(a.x - b.x, a.y - b.y) > 35, `${a.id}/${b.id} trop proches`);
+});
+test('partie 1.1 migrée : stations, trésorerie et jour intacts, nouveaux terrains libres', () => {
+  const old = fixture();
+  const s = E.migrate(fixture());
+  assert.ok(s);
+  assert.equal(s.v, E.SAVE_VERSION);
+  assert.equal(s.d, old.d); assert.equal(s.cash, old.cash);
+  assert.deepEqual(Object.keys(s.stations).sort(), Object.keys(old.stations).sort());
+  for (const k of Object.keys(old.stations)) assert.deepEqual(s.stations[k].units, old.stations[k].units);
+  assert.equal(s.lots.length, E.LOTS.length);
+  assert.ok(s.lots.filter(l => !old.lots.some(o => o.id === l.id)).every(l => !l.owner));
+  E.advanceDays(s, 30); noNaN(s);
+});
+test('historique annuel reconstitué à la migration (CA total conservé)', () => {
+  const old = fixture();
+  const s = E.migrate(fixture());
+  const tot = Object.values(s.years).reduce((a, y) => a + y.rev.reduce((b, x) => b + x, 0), 0);
+  assert.ok(Math.abs(tot - old.totals.rev) < 50, `CA annuel ${tot} vs total ${old.totals.rev}`);
+});
+test('historique annuel : un an de jeu passe à l\'année suivante', () => {
+  const s = E.newGame(); E.buyUnit(s, 'A', 'hp', 0); E.buyUnit(s, 'A', 'hp', 0);
+  E.advanceDays(s, 400);
+  const ys = Object.keys(s.years).sort();
+  assert.deepEqual(ys, ['2027', '2028']);
+  const sum = ys.reduce((a, y) => a + s.years[y].rev.reduce((b, x) => b + x, 0), 0);
+  assert.ok(Math.abs(sum - s.totals.rev) < 400 * 2, `années ${sum} vs total ${s.totals.rev}`);
+  assert.ok(s.stations.A.years['2027'].served > 0);
+});
+test('clients découragés comptés quand la file sature ou que le prix est haut', () => {
+  const s = E.newGame(); E.buyUnit(s, 'A', 'hp', 0);
+  s.zones.find(z => z.id === 'bruyeres').stage = 4;     // très forte demande pour une seule piste
+  E.advanceDays(s, 20);
+  const h = s.stations.A.hist.slice(-10);
+  assert.ok(h.reduce((a, x) => a + x.deter, 0) > 0, 'découragés par la file');
+  const s2 = E.newGame(); E.buyUnit(s2, 'A', 'hp', 0); s2.stations.A.prices.hp = 15;
+  E.advanceDays(s2, 20);
+  assert.ok(s2.stations.A.hist.slice(-10).reduce((a, x) => a + x.cher, 0) > 0, 'découragés par le prix');
+  const s3 = E.newGame(); E.buyUnit(s3, 'A', 'hp', 0); s3.stations.A.prices.hp = 1;
+  E.advanceDays(s3, 10);
+  assert.equal(s3.stations.A.hist.reduce((a, x) => a + x.cher, 0), 0, 'aucun découragé par le prix sous la référence');
+});
+test('nommer sa station : gardé dans la sauvegarde', () => {
+  const s = E.newGame();
+  assert.ok(E.renameStation(s, 'A', '  Chez   Yoann  ').ok);
+  const back = E.migrate(roundtrip(s));
+  assert.equal(back.stations.A.name, 'Chez Yoann');
+  assert.equal(E.stationName(back, 'A'), 'Chez Yoann');
+  assert.equal(E.renameStation(s, 'G', 'X').ok, false, 'pas de renommage chez un rival');
+});
+
 console.log(`\n${passed} tests OK` + (process.exitCode ? ' — ÉCHECS ci-dessus' : ''));

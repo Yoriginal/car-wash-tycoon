@@ -293,7 +293,7 @@ FEUILLES.equipe = ({ lot, confirm }) => {
       + dispo.map(e => bouton({ label: `Partager ${esc(e.name)} (${e.stations.length}/3)`, montant: `+${bonusDe(e.stations.length + 1)} %`, fa: 'eq-partager', data: { emp: e.id } })).join('');
   }
   return feuille({ ic: 'cap', titre: 'Équipe', sous: `Vestiaire · ${esc(stationLabel(lot))} · ${pluriel(S.staff.length, 'salarié')}`, corps, actions,
-    note: 'Un employé peut couvrir jusqu\'à 3 stations du même secteur.' });
+    note: 'Un employé peut couvrir jusqu\'à 3 stations de la même ville.' });
 };
 
 // ---------- Station ----------
@@ -313,7 +313,7 @@ FEUILLES.station = ({ lot, confirm }) => {
     ${ligne('File d\'attente max.', `${E.qmaxOf(st)} voitures`)}
     ${ligne('CA / mois', fmt(rev))}
     ${ligne('Résultat / mois', signed(net), net >= 0 ? '' : 'neg')}
-    ${ligne('Repartis (file pleine) / mois', lost)}
+    ${ligne('Clients perdus / mois', lost)}
   </div>`;
   let actions = '';
   if (offre) {
@@ -333,7 +333,6 @@ FEUILLES.station = ({ lot, confirm }) => {
 
 // ---------- Nommer la station ----------
 const NOM_MAX = 18;
-function nomEffacer(lot) { const p = Prefs.get(); if (p.noms) { delete p.noms[lot]; Prefs.save(); } }
 FEUILLES.nommer = ({ lot, achat }) => {
   if (!S.stations[lot]) return '';
   const actuel = stationLabel(lot);
@@ -349,20 +348,25 @@ FEUILLES.file = ({ lot }) => {
   const st = S.stations[lot];
   if (!st) return '';
   const q = st.q.portique + st.q.hp, cap = E.qmaxOf(st);
-  const h = st.hist.slice(-29);
-  const lost7 = h.reduce((a, x) => a + x.lost, 0) + st.day.lost;
+  const m = stationMois(st);
+  const lost7 = m.repartis + m.file;
+  const sature = lost7 > Math.max(5, m.lavages * 0.03);
   const capH = E.TYPES.reduce((a, t) => a + st.units.filter(u => u.type === t && u.down === 0).reduce((b, u) => b + E.EQUIP[t].tiers[u.tier].cap, 0), 0);
   const free = E.freeSlots(st);
   let conseil, actions = '';
   if (!st.units.length) { conseil = 'Aucun équipement : installe un premier poste.'; actions = bouton({ label: 'Ouvrir le catalogue', ic: 'plus', fa: 'ouvrir', data: { k: 'catalogue' }, neon: true }); }
-  else if (lost7 > 0 && free > 0) { conseil = 'Des clients repartent faute de place : un équipement de plus absorberait la file.'; actions = bouton({ label: 'Ajouter un équipement', ic: 'plus', fa: 'ouvrir', data: { k: 'catalogue' }, neon: true }) + bouton({ label: 'Ajuster les prix', ic: 'tag', fa: 'ouvrir', data: { k: 'prix' } }); }
-  else if (lost7 > 0) { conseil = 'La station est pleine : monter un peu les prix rapporte plus par lavage et raccourcit la file.'; actions = bouton({ label: 'Ajuster les prix', ic: 'tag', fa: 'ouvrir', data: { k: 'prix' }, neon: true }); }
-  else conseil = 'La file s\'écoule bien : aucun client perdu ce mois-ci.';
+  else if (sature && free > 0) { conseil = 'Des clients repartent faute de place : un équipement de plus absorberait la file.'; actions = bouton({ label: 'Ajouter un équipement', ic: 'plus', fa: 'ouvrir', data: { k: 'catalogue' }, neon: true }) + bouton({ label: 'Ajuster les prix', ic: 'tag', fa: 'ouvrir', data: { k: 'prix' } }); }
+  else if (sature) { conseil = 'La station est pleine : monter un peu les prix rapporte plus par lavage et raccourcit la file.'; actions = bouton({ label: 'Ajuster les prix', ic: 'tag', fa: 'ouvrir', data: { k: 'prix' }, neon: true }); }
+  else if (m.prix > m.lavages * 0.15) { conseil = 'La file s\'écoule bien, mais ton prix fait fuir des clients : il est au-dessus du prix habituel du coin.'; actions = bouton({ label: 'Ajuster les prix', ic: 'tag', fa: 'ouvrir', data: { k: 'prix' }, neon: true }); }
+  else conseil = 'La file s\'écoule bien : peu de clients perdus ce mois-ci.';
   const corps = `<div class="f-lignes">
     ${ligne('En file maintenant', `${q} / ${cap}`)}
-    ${ligne('Repartis (file pleine) / mois', lost7.toLocaleString('fr-FR'))}
+    ${ligne('Clients perdus / mois', m.perdus.toLocaleString('fr-FR'), 'fort')}
+    ${ligne('repartis, file pleine', m.repartis.toLocaleString('fr-FR'), 'sous')}
+    ${ligne('découragés par la file', m.file.toLocaleString('fr-FR'), 'sous')}
+    ${ligne('découragés par le prix', m.prix.toLocaleString('fr-FR'), 'sous')}
     ${ligne('Capacité en marche', `${capH} lavages/h`)}
-  </div><p class="f-texte">${lost7 > 0 ? picto('critique', 18) : picto('ok', 18)} ${conseil}</p>`;
+  </div><p class="f-texte">${sature ? picto('critique', 18) : picto('ok', 18)} ${conseil}</p>`;
   return feuille({ ic: 'queue', titre: 'File d\'attente', sous: esc(stationLabel(lot)), corps, actions });
 };
 
@@ -375,7 +379,7 @@ function feuilleAct(a, el) {
   if (mondeAct(a) || ecransAct(a, el) || popupAct(a, el)) return;
   switch (a) {
     case 'ouvrir': feuilleOpen(el.dataset.k, { lot }); return;
-    case 'annuler': f.confirm = null; feuilleRefresh(); return;
+    case 'annuler': f.confirm = null; f.confirmJeu = false; feuilleRefresh(); return;
     case 'prix-pas': prixSet(el.dataset.t, st.prices[el.dataset.t] + +el.dataset.d); return;
     case 'chimie': st.chem = +el.dataset.v; break;
     case 'contrat': st.contract = +el.dataset.v; break;
@@ -406,13 +410,12 @@ function feuilleAct(a, el) {
     case 'st-vendre': f.confirm = true; break;
     case 'nom-ok': {
       const v = (($('#nom-station') || {}).value || '').replace(/\s+/g, ' ').trim().slice(0, NOM_MAX);
-      const p = Prefs.get(); p.noms = p.noms || {};
-      if (v) p.noms[lot] = v; else delete p.noms[lot];
-      Prefs.save(); closeSheet(); toast(v ? `Station baptisée « ${v} ».` : 'Nom par défaut rétabli.', 'good');
+      E.renameStation(S, lot, v);
+      Save.touch(); closeSheet(); toast(v ? `Station baptisée « ${v} ».` : 'Nom par défaut rétabli.', 'good');
       return;
     }
     case 'nom-garder': closeSheet(); return;
-    case 'st-vendre-ok': nomEffacer(lot); r = E.sellStation(S, lot); closeSheet(true); go('map'); toast(`Station vendue ${fmt(r.v)}.`, 'info'); renderHud(); Save.touch(); return;
+    case 'st-vendre-ok': r = E.sellStation(S, lot); closeSheet(true); go('map'); toast(`Station vendue ${fmt(r.v)}.`, 'info'); renderHud(); Save.touch(); return;
   }
   if (r && !r.ok && r.msg) toast(r.msg, 'bad');
   renderHud();

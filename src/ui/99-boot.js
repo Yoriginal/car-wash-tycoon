@@ -10,4 +10,5 @@ window.__CWT = { get S() { return S; }, E, go, toast, setSpeed, pop: p => { (ui.
   if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 }
 coachBuild();
+try { nomsVersSauvegarde(); } catch (e) { /* rien à reprendre */ }
 setInterval(coachTick, 300);

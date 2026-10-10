@@ -34,8 +34,10 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     const st = await pg.evaluate(() => ({ d: __CWT.S.d, n: Object.values(__CWT.S.stations).filter(x => x.owner === 'player').length, units: __CWT.S.stations.C.units.length }));
     ok(st.d === F.d, `partie 1.1 rechargée au jour ${st.d}`);
     ok(st.n === 2 && st.units === F.stations.C.units.length, 'stations et équipements intacts');
+    await pg.waitForTimeout(300); await pg.evaluate(() => window.dispatchEvent(new Event('pagehide')));
     const raw = await pg.evaluate(() => JSON.parse(localStorage.getItem('cwt-save-v3')));
-    ok(raw.v === F.v && JSON.stringify(Object.keys(raw).sort()) === JSON.stringify(Object.keys(F).sort()), 'format de sauvegarde inchangé');
+    const bak = await pg.evaluate(() => localStorage.getItem('cwt-backup-v' + 3));
+    ok(raw.v === 4 && raw.years && raw.lots.length > F.lots.length && JSON.parse(bak).d === F.d, 'sauvegarde migrée au format v3 (copie de l\'ancienne gardée)');
     await pg.close();
 
     // 2. nouvelle partie : écran titre → première vente
@@ -87,8 +89,8 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     await pg.click('[data-test="renommer"]'); await pg.waitForTimeout(300);
     await pg.fill('[data-test="nom-station"]', 'Chez Yoann');
     await pg.click('[data-test="nom-ok"]'); await pg.waitForTimeout(400);
-    const nom = await pg.evaluate(() => ({ enseigne: (document.querySelector('.enseigne-nom') || {}).textContent, save: JSON.stringify(__CWT.S).includes('Chez Yoann') }));
-    ok(nom.enseigne === 'Chez Yoann' && !nom.save, 'station renommée (enseigne), nom hors sauvegarde');
+    const nom = await pg.evaluate(() => ({ enseigne: (document.querySelector('.enseigne-nom') || {}).textContent, save: __CWT.S.stations.A.name }));
+    ok(nom.enseigne === 'Chez Yoann' && nom.save === 'Chez Yoann', 'station renommée : enseigne et sauvegarde');
 
     // 4. Monde : fiche Terrain et fiche Reconnaissance
     await pg.click('[data-nav="map"]'); await pg.waitForTimeout(400);

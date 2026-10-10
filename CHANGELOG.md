@@ -5,6 +5,18 @@ Format : `MAJEUR.MINEUR.CORRECTIF`
 - **MINEUR** : nouvelle fonctionnalité (nouvel équipement, marketing, nouvelle carte…).
 - **CORRECTIF** : bug, équilibrage, texte.
 
+## 3.0.0 — moteur v3 (en aperçu)
+- Carte en villes : chaque case est une ville (village, bourg, petite ville, ville, grande ville)
+  avec 3 à 6 terrains selon sa taille ; 14 nouveaux terrains, les anciens gardent leur place.
+- Finances : bilan annuel (CA, résultat, lavages par année), comparaison avec l'année précédente
+  sur la même période et CA mois par mois des deux années.
+- Nom de station gardé dans la sauvegarde (les noms donnés en 2.0 sont repris automatiquement).
+- Clients perdus réalistes : repartis d'une file pleine, découragés par la file, découragés par un
+  prix au-dessus du prix habituel du coin ; détail dans le panneau File d'attente.
+- Sauvegarde au format 4 : migration automatique des parties 1.1 / 2.0, copie de l'ancienne gardée.
+- L'aperçu joue sur une copie de la partie : le jeu principal n'est jamais touché par un moteur
+  plus récent ; Réglages → « Repartir de ma partie du jeu ».
+
 ## 2.0.0 — refonte de l'interface « Néon Diner » (en aperçu)
 - Nouvelle direction artistique : clair = on regarde, sombre = on touche, néon = prochaine action.
 - HUD haut (trésorerie, date et météo, niveau, cloche) et dock sombre avec cadran de vitesse.

@@ -26,7 +26,7 @@ FEUILLES.empire = f => {
   const tri = f.tri || 'etat';
   const liste = mine.map(st => ({ st, e: etatLigne(st), ca: ca30(st) }))
     .sort((a, b) => tri === 'ca' ? b.ca - a.ca : a.e.rang - b.e.rang || b.ca - a.ca);
-  const secteurs = new Set(mine.map(st => E.sectorOfLot(st.lot))).size;
+  const villes = new Set(mine.map(st => E.sectorOfLot(st.lot))).size;
   const kpis = `<div class="kpis3">
     <div><b class="num">${kfmt(liste.reduce((a, x) => a + x.ca, 0))}</b><small>CA 30 jours</small></div>
     <div><b class="num">${kfmt(E.patrimoine(S))}</b><small>Valeur</small></div>
@@ -45,7 +45,7 @@ FEUILLES.empire = f => {
   const corps = kpis + (mine.length > 1 ? seg : '') + `<div class="st-liste">${lignes || '<p class="f-vide">Plus aucune station. Trouve un terrain sur la carte.</p>'}</div>`;
   const actions = bouton({ label: 'Trouver un nouveau terrain', ic: 'map', fa: 'emp-carte', neon: !mine.length })
     + bouton({ label: 'Équipe', ic: 'cap', montant: S.staff.length ? `${S.staff.length} · ${fmt(S.staff.length * E.STAFF_DAY)}/j` : '', fa: 'ouvrir', data: { k: 'vestiaire' } });
-  return feuille({ ic: 'empire', titre: 'Empire', sous: `Mur des stations · ${pluriel(mine.length, 'station')} · ${pluriel(secteurs, 'secteur')}`, corps, actions,
+  return feuille({ ic: 'empire', titre: 'Empire', sous: `Mur des stations · ${pluriel(mine.length, 'station')} · ${pluriel(villes, 'ville')}`, corps, actions,
     note: mine.length > 1 ? 'Toucher une station ouvre son écran. Le tri « par état » remonte les pannes en premier.' : '' });
 };
 
@@ -63,6 +63,53 @@ function courbeTresorerie() {
       <polygon points="0,${H} ${pts} ${W},${H}" fill="#E3F6F3"/>${zero}
       <polyline points="${pts}" fill="none" stroke="#14BFAE" stroke-width="2.4" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>
     <div class="courbe-l"><span>Trésorerie · ${h.length} jours</span><span>aujourd'hui</span></div>`;
+}
+// ---------- bilan annuel (historique par mois tenu par le moteur depuis la v3) ----------
+const AN_COUL = { cur: '#0E8F83', prev: '#C26A2E' };
+const MOIS_L = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+function anTotal(y, k, upTo = 12) { return ((S.years[y] || {})[k] || []).slice(0, upTo).reduce((a, b) => a + b, 0); }
+function bilanAnnuel() {
+  const ys = Object.keys(S.years || {}).sort();
+  if (!ys.length) return `<p class="f-texte t-flou">Le bilan annuel apparaît après la première journée de jeu.</p>`;
+  const cur = E.yearOf(S.d), mois = E.dateOf(S.d).getUTCMonth();
+  const prev = String(+cur - 1);
+  const maxCA = Math.max(1, ...ys.map(y => anTotal(y, 'rev')));
+  // tableau : une ligne par année (sert aussi de vue texte du graphique)
+  const lignes = ys.slice().reverse().map(y => {
+    const ca = anTotal(y, 'rev'), net = ca - anTotal(y, 'cost');
+    return `<div class="an-ligne"><span class="an-y">${y}${y === cur ? '<small>en cours</small>' : ''}${S.years[y].estime ? '<small>en partie estimé</small>' : ''}</span>
+      <span class="an-barre"><i style="width:${Math.max(2, Math.round(100 * ca / maxCA))}%;background:${y === cur ? AN_COUL.cur : '#B5AE9F'}"></i></span>
+      <span class="an-v"><b class="num">${kfmt(ca)}</b><small>résultat ${kfmt(net)} · ${anTotal(y, 'served').toLocaleString('fr-FR')} lavages</small></span></div>`;
+  }).join('');
+  let compare = '';
+  if (S.years[prev] && mois > 0) {
+    const a = anTotal(cur, 'rev', mois), b = anTotal(prev, 'rev', mois);
+    const ok = b > 0 && !(S.years[prev].rev.slice(0, mois).some(v => v === 0));
+    if (ok) {
+      const pct = Math.round(100 * (a - b) / b);
+      compare = `<p class="an-compare">${picto(pct >= 0 ? 'ok' : 'critique', 18)}<span>De janvier à fin ${MOIS[mois - 1]} : <b class="num">${kfmt(a)}</b> contre ${kfmt(b)} en ${prev}, soit <b class="num">${pct >= 0 ? '+' : '−'}${Math.abs(pct)} %</b>.</span></p>`;
+    }
+  }
+  // graphique : CA mensuel de l'année en cours et de l'année précédente
+  const W = 340, H = 104, gw = W / 12, bw = S.years[prev] ? 10 : 16;
+  const yc = S.years[cur] || { rev: Array(12).fill(0) };
+  const vals = [...yc.rev, ...(S.years[prev] ? S.years[prev].rev : [])];
+  const max = Math.max(1, ...vals);
+  const y = v => H - 14 - (v / max) * (H - 26);
+  let barres = '';
+  for (let m = 0; m < 12; m++) {
+    const x0 = m * gw + gw / 2;
+    const series = S.years[prev] ? [[prev, S.years[prev].rev[m], -bw - 1], [cur, yc.rev[m], 1]] : [[cur, yc.rev[m], -bw / 2]];
+    for (const [yy, v, dx] of series) {
+      if (!v) continue;
+      const top = y(v), h = H - 14 - top;
+      barres += `<path d="M${x0 + dx} ${H - 14} V${top + Math.min(3, h)} q0 -3 3 -3 h${bw - 6} q3 0 3 3 V${H - 14} Z" fill="${yy === cur ? AN_COUL.cur : AN_COUL.prev}"><title>${MOIS[m]} ${yy} : ${fmt(v)}</title></path>`;
+    }
+    barres += `<text x="${x0}" y="${H - 2}" text-anchor="middle" font-family="Barlow Condensed" font-weight="600" font-size="9" fill="${m === mois ? '#171B1E' : '#6A7276'}">${MOIS_L[m]}</text>`;
+  }
+  const leg = `<div class="an-leg"><span><i style="background:${AN_COUL.cur}"></i>${cur}</span>${S.years[prev] ? `<span><i style="background:${AN_COUL.prev}"></i>${prev}</span>` : ''}<span class="an-leg-m">CA par mois</span></div>`;
+  return `<div class="an-liste">${lignes}</div>${compare}${leg}
+    <svg class="an-graph" viewBox="0 0 ${W} ${H}" role="img" aria-label="Chiffre d'affaires par mois, ${cur}${S.years[prev] ? ' et ' + prev : ''}"><line x1="0" x2="${W}" y1="${H - 14}" y2="${H - 14}" stroke="#D8D2C6"/>${barres}</svg>`;
 }
 function banqueInfo(f) {
   const lim = E.creditLimit(S);
@@ -93,7 +140,8 @@ FEUILLES.banque = f => {
   const prets = S.loans.map(l => f.confirm === l.id
     ? `<div class="pret-conf">${bouton({ label: `Solder ce prêt`, ic: 'check', montant: fmt(Math.round(l.remaining)), fa: 'bq-solder', data: { id: l.id }, off: S.cash < l.remaining, danger: false })}${bouton({ label: 'Garder', fa: 'annuler' })}</div>`
     : `<button class="pret" data-fa="bq-pret" data-id="${l.id}"><span><b>${fmt(Math.round(l.remaining))} restants</b><small>${fmt(l.monthly)}/mois · ${l.left} mois · ${virgule((l.rate * 100).toFixed(1))} %</small></span><span class="pret-s">solder</span></button>`).join('');
-  const corps = bilan + courbeTresorerie()
+  const corps = bilan + `<div class="f-h2"><h3>Bilan annuel</h3><small>chiffre d'affaires</small></div>${bilanAnnuel()}`
+    + `<div class="f-h2"><h3>Trésorerie</h3><small>60 derniers jours</small></div>` + courbeTresorerie()
     + `<div class="f-h2"><h3>Emprunter</h3><small>jusqu'à ${fmt(lim)}</small></div>${emprunt}`
     + (S.loans.length ? `<div class="f-h2"><h3>Prêts en cours</h3></div><div class="prets">${prets}</div>` : '');
   return feuille({ ic: 'bank', titre: 'Finances', sous: 'Guichet de la Caisse du Chrome', corps,
@@ -157,8 +205,10 @@ FEUILLES.reglages = f => {
   let copies = '';
   if (PREVIEW) {
     const lst = PREVIEW_BACKUPS.map((k, i) => { try { const b = JSON.parse(localStorage.getItem(k) || 'null'); return b && b.at ? { n: i + 1, at: b.at } : null; } catch (e) { return null; } }).filter(Boolean);
-    if (lst.length) copies = `<div class="f-h2"><h3>Copies de l'aperçu</h3></div><p class="f-texte t-flou">Ta partie est copiée à chaque ouverture de l'aperçu. En cas de souci, reviens à une copie :</p>`
-      + lst.map(b => bouton({ label: `Copie du ${new Date(b.at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`, ic: 'clock', fa: 'reg-copie', data: { n: b.n } })).join('');
+    copies = `<div class="f-h2"><h3>Partie de l'aperçu</h3></div><p class="f-texte t-flou">L'aperçu joue sur une copie de ta partie : le jeu principal n'est jamais touché. Elle est aussi copiée à chaque ouverture ; en cas de souci, reviens à une copie :</p>`
+      + lst.map(b => bouton({ label: `Copie du ${new Date(b.at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`, ic: 'clock', fa: 'reg-copie', data: { n: b.n } })).join('')
+      + (f.confirmJeu ? bouton({ label: 'Confirmer : repartir de la partie du jeu', fa: 'reg-jeu-ok', danger: true }) + bouton({ label: 'Garder la partie de l\'aperçu', fa: 'annuler' })
+        : bouton({ label: 'Repartir de ma partie du jeu', ic: 'down', fa: 'reg-jeu' }));
   }
   const actions = (f.importer
     ? bouton({ label: 'Charger cette partie', ic: 'check', fa: 'reg-importer-ok', neon: true }) + bouton({ label: 'Annuler', fa: 'reg-importer-non' })
@@ -212,6 +262,14 @@ function ecransAct(a, el) {
         restore(st, false); Save.touch(); Save.cloud(true);
         toast('Partie restaurée depuis la copie.', 'good');
       } catch (e) { toast('Copie illisible.', 'bad'); }
+      return true;
+    }
+    case 'reg-jeu': f.confirmJeu = true; break;
+    case 'reg-jeu-ok': {
+      const st = E.migrate(partieDuJeu());
+      if (!st) { toast('Aucune partie lisible dans le jeu principal.', 'bad'); f.confirmJeu = false; break; }
+      restore(st, false); Save.touch();
+      toast('L\'aperçu repart de ta partie du jeu.', 'good');
       return true;
     }
     case 'reg-reset': f.confirm = true; break;

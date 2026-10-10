@@ -7,11 +7,20 @@
 const MW = 300, MH = 400;
 const TK = 0.27;                 // échelle des tuiles 150 × 118 du pack sur la carte
 const Z_MAX = 7;
-const ROUTES = [
-  [[52, 346], [62, 330], [108, 292], [116, 310]], [[108, 292], [70, 200], [54, 216]], [[70, 200], [98, 206], [220, 196], [248, 204]],
-  [[220, 196], [200, 222], [196, 300], [186, 318]], [[196, 300], [252, 360], [262, 378]], [[70, 200], [70, 62], [40, 66]],
-  [[70, 62], [96, 84], [204, 92], [226, 60], [266, 74]], [[30, 112], [70, 62]], [[220, 196], [226, 60]], [[62, 330], [196, 300]]
-];
+// une case = une ville : bloc urbain avec ses rues, routes départementales entre villes voisines
+const VILLE_PAIRES = [[0, 1], [0, 2], [1, 3], [2, 3], [2, 4], [3, 5], [4, 5]];
+const villeCentre = sc => [sc.x + sc.w / 2, sc.y + sc.h / 2 + 8];
+const ROUTES = VILLE_PAIRES.map(([a, b]) => [villeCentre(E.SECTORS[a]), villeCentre(E.SECTORS[b])]);
+function villeSvg(sc) {
+  const x0 = sc.x + 7, y0 = sc.y + 16, w = sc.w - 14, h = sc.h - 20;
+  const n = E.LOTS.filter(l => E.sectorOfLot(l.id) === sc.id).length;
+  const rues = [0, 1, 2].map(r => sc.y + 60 + r * 34 + 4).map(y => `<path d="M${x0 + 6} ${y} H${x0 + w - 6}"/>`).join('')
+    + [51.5, 98.5].map(dx => `<path d="M${sc.x + dx} ${y0 + 18} V${y0 + h - 4}"/>`).join('');
+  return `<g class="ville"><rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="14" fill="#F5F0E5" stroke="#D6CCB6" stroke-width="1"/>
+    <g stroke="#E3DACA" stroke-width="4" stroke-linecap="round" fill="none">${rues}</g>
+    <text x="${sc.x + sc.w / 2}" y="${sc.y + 27}" text-anchor="middle" font-family="Righteous" font-size="9.5" fill="#171B1E">${escSvg(sc.name)}</text>
+    <text x="${sc.x + sc.w / 2}" y="${sc.y + 34.5}" text-anchor="middle" font-family="Barlow Condensed" font-weight="700" font-size="4.6" letter-spacing=".8" fill="#6A7276">${escSvg((sc.kind || '').toUpperCase())} · ${n} TERRAINS</text></g>`;
+}
 const RIVAL_SPRITE = { disc: 'monde/rival_discount_wash', splash: 'monde/rival_splash_co' };
 const MONDE_CARS = ['#C8435F', '#3E8E86', '#E0A631', '#5C7FA6', '#3A3F44', '#14BFAE', '#B9BEC1', '#FF7A1A'];
 
@@ -75,7 +84,9 @@ function zoneSvg(zd) {
   const z = S.zones.find(x => x.id === zd.id);
   const k = 0.22;
   let out = `<g class="zone" transform="translate(${zd.x - 75 * k},${zd.y - 96 * k - 3}) scale(${k})" opacity=".95">${innerSvg(sprite('monde/zone_palier_' + (z.stage + 1)))}</g>`;
-  out += `<text x="${zd.x}" y="${zd.y - 20}" text-anchor="middle" font-family="Barlow Condensed" font-weight="700" font-size="5" letter-spacing=".9" fill="#6A7276">${escSvg(zd.name.toUpperCase())}</text>`;
+  const sc = E.SECTORS[zd.sector];
+  const lib = (zd.name !== sc.name ? zd.name + ' · ' : '') + E.STAGES[z.stage].n;
+  out += `<text x="${zd.x}" y="${zd.y + 6}" text-anchor="middle" font-family="Barlow Condensed" font-weight="700" font-size="4.3" letter-spacing=".6" fill="#6A7276">${escSvg(lib.toUpperCase())}</text>`;
   if (z.pending) out += `<g class="signal" transform="translate(${zd.x + 6},${zd.y - 28}) scale(.2)">${innerSvg(sprite('monde/signal_faible'))}</g>`;
   return out;
 }
@@ -87,7 +98,7 @@ function brouillardSvg(sc) {
     const x = sc.x + ((i * 53 + sc.id * 31) % sc.w), y = sc.y + ((i * 37 + sc.id * 17) % sc.h), r = 16 + (i * 7 % 13);
     nuages += `<circle cx="${x}" cy="${y}" r="${r}"/>`;
   }
-  return `<g class="fog" data-sector="${sc.id}" data-test="fog-${sc.id}" role="button" tabindex="0" aria-label="Secteur inconnu : reconnaître pour ${fmt(E.RECON_COST)}">
+  return `<g class="fog" data-sector="${sc.id}" data-test="fog-${sc.id}" role="button" tabindex="0" aria-label="Ville inconnue : reconnaître pour ${fmt(E.RECON_COST)}">
     <rect x="${sc.x}" y="${sc.y}" width="${sc.w}" height="${sc.h}" fill="#ECE2C6"/>
     <g clip-path="url(#fogc${sc.id})" fill="#FBF8F1" opacity=".96">${nuages}</g>
     <circle class="fog-rond" cx="${cx}" cy="${cy - 4}" r="11" fill="#1B2024"/>
@@ -118,11 +129,11 @@ let mondeCible = null;
 function mondeObjetsSvg() {
   mondeCible = cibleMonde();
   let out = '';
+  for (const sc of E.SECTORS) if (sectorOk(sc.id)) out += villeSvg(sc);
   for (const zd of E.ZONES) if (sectorOk(zd.sector)) out += zoneSvg(zd);
   const lots = E.LOTS.filter(l => sectorRevealed(l.id)).sort((a, b) => a.y - b.y);
   for (const l of lots) out += lotSvg(l);
   for (const sc of E.SECTORS) if (!sectorOk(sc.id)) out += brouillardSvg(sc);
-  for (const sc of E.SECTORS) if (sectorOk(sc.id)) out += `<text x="${sc.x + 5}" y="${sc.y + 10}" font-family="Barlow Condensed" font-weight="700" font-size="6" letter-spacing="1.2" fill="#8B8678">${escSvg(sc.name.toUpperCase())}</text>`;
   return out;
 }
 function mondeSig() {
@@ -137,10 +148,10 @@ function viewMonde() {
       <defs>${E.SECTORS.map(sc => `<clipPath id="fogc${sc.id}"><rect x="${sc.x}" y="${sc.y}" width="${sc.w}" height="${sc.h}"/></clipPath>`).join('')}
         <pattern id="papier" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".5" fill="#D9D0BC"/></pattern></defs>
       <rect x="-200" y="-200" width="${MW + 400}" height="${MH + 400}" fill="#E4DCC8"/>
-      <rect width="${MW}" height="${MH}" fill="#EEE8DA"/><rect width="${MW}" height="${MH}" fill="url(#papier)" opacity=".7"/>
-      <path d="M300 300 C 270 330, 280 360, 236 400 L300 400 Z" fill="#BFE0E6"/>
-      <path d="M0 150 C 40 160, 30 240, 110 250 S 160 330, 140 400" fill="none" stroke="#A9D6E5" stroke-width="5" stroke-linecap="round"/>
-      ${ROUTES.map(r => `<polyline points="${pl(r)}" fill="none" stroke="#D3CCBD" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>`).join('')}
+      <rect width="${MW}" height="${MH}" fill="#E9E6CF"/><rect width="${MW}" height="${MH}" fill="url(#papier)" opacity=".7"/>
+      <path d="M300 262 C 292 300, 304 340, 296 400 L340 400 L340 262 Z" fill="#BFE0E6"/>
+      <path d="M0 150 C 40 160, 30 240, 110 250 S 160 330, 140 400" fill="none" stroke="#A9D6E5" stroke-width="4" stroke-linecap="round"/>
+      ${ROUTES.map(r => `<polyline points="${pl(r)}" fill="none" stroke="#D3CCBD" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>`).join('')}
       ${E.SECTORS.map(sc => `<rect x="${sc.x}" y="${sc.y}" width="${sc.w}" height="${sc.h}" fill="none" stroke="#B8AE98" stroke-width=".7" stroke-dasharray="4 3"/>`).join('')}
       <g id="monde-voitures">${voituresSvg()}</g>
       <g id="monde-objets" data-sig="${escSvg(mondeSig())}">${mondeObjetsSvg()}</g>
@@ -282,8 +293,9 @@ FEUILLES.terrain = ({ lot }) => {
 };
 FEUILLES.reconnaissance = ({ sector }) => {
   const sc = E.SECTORS[sector];
-  return feuille({ ic: 'lock', titre: sc.name, sous: 'Secteur non reconnu',
-    corps: `<p class="f-texte">Une reconnaissance dévoile ses zones, ses terrains et leur potentiel en fourchette large. Les signaux faibles (chantiers, rumeurs) deviennent visibles.</p>`,
+  const n = E.LOTS.filter(l => E.sectorOfLot(l.id) === sc.id).length;
+  return feuille({ ic: 'lock', titre: sc.name, sous: `${escSvg(sc.kind || 'Ville')} · ${n} terrains à découvrir`,
+    corps: `<p class="f-texte">Une reconnaissance dévoile ses quartiers, ses ${n} terrains et leur potentiel en fourchette large. Les signaux faibles (chantiers, rumeurs) deviennent visibles.</p>`,
     actions: bouton({ label: 'Reconnaître', ic: 'eye', montant: fmt(E.RECON_COST), fa: 'reconnaitre', neon: S.cash >= E.RECON_COST, off: S.cash < E.RECON_COST, test: 'reconnaitre' }) });
 };
 function mondeAct(a) {
@@ -297,12 +309,12 @@ function mondeAct(a) {
       const prix = ls.sale ? ls.sale.price : E.lotPrice(S, f.lot);
       if (a === 'acheter-terrain-pret') { const p = pretPour(prix, 5000); if (p && !p.refuse) { r = E.borrow(S, p.need, 7); if (!r.ok) break; } }
       r = E.buyLot(S, f.lot);
-      if (r.ok) { const lot = f.lot; nomEffacer(lot); closeSheet(true); go('station', lot); renderHud(); Save.touch(); feuilleOpen('nommer', { lot, achat: true }); return true; }
+      if (r.ok) { const lot = f.lot; closeSheet(true); go('station', lot); renderHud(); Save.touch(); feuilleOpen('nommer', { lot, achat: true }); return true; }
       break;
     }
     case 'reconnaitre':
       r = E.reveal(S, f.sector);
-      if (r.ok) { closeSheet(); toast('Secteur reconnu : de nouveaux terrains apparaissent.', 'good'); renderHud(); Save.touch(); return true; }
+      if (r.ok) { closeSheet(); toast(`${E.SECTORS[f.sector].name} reconnue : ses terrains apparaissent.`, 'good'); renderHud(); Save.touch(); return true; }
       break;
     default: return false;
   }

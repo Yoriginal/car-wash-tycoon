@@ -5,7 +5,7 @@
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const euro = v => (Math.round(v * 2) / 2).toLocaleString('fr-FR', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }) + ' €';
   const kfmt = v => Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' M€' : Math.abs(v) >= 1e4 ? Math.round(v / 1000).toLocaleString('fr-FR') + ' k€' : fmt(v);
-  const LS_KEY = 'cwt-save-v3'; // clé de stockage : ne JAMAIS la changer (les migrations gèrent le format)
+  const LS_KEY = SAVE_KEY; // jeu : « cwt-save-v3 », ne JAMAIS la changer (les migrations gèrent le format) ; aperçu : une copie
 
   let S = null;                  // état du jeu
   const ui = { tab: 'map', lot: null, sheet: null, wasPaused: false, confirm: null, loanAmt: 0, loanYears: 7, toastQ: [], lastToast: 0, logTop: null, dirty: false };
@@ -182,7 +182,7 @@
       case 'tab': go(el.dataset.tab); return;
       case 'close': closeSheet(); return;
       case 'open-station': closeSheet(true); go('station', lot); return;
-      case 'reveal': r = E.reveal(S, +el.dataset.sector); if (r.ok) { closeSheet(); toast('Secteur reconnu : de nouveaux terrains apparaissent.', 'good'); } break;
+      case 'reveal': r = E.reveal(S, +el.dataset.sector); if (r.ok) { closeSheet(); toast('Ville reconnue : ses terrains apparaissent.', 'good'); } break;
       case 'study': r = E.study(S, lot); if (r.ok) sheetLot(lot); break;
       case 'buy-lot': r = E.buyLot(S, lot); if (r.ok) { closeSheet(true); go('station', lot); toast('Terrain acheté. Installe tes équipements.', 'good'); } break;
       case 'buy-lot-loan': r = E.borrow(S, +el.dataset.amt, 7); if (r.ok) { r = E.buyLot(S, lot); if (r.ok) { closeSheet(true); go('station', lot); toast('Prêt accordé, terrain acheté.', 'good'); } } break;
@@ -210,7 +210,7 @@
       case 'mode': S.mode = el.dataset.v; if (S.mode === 'turn') paused = true; else paused = false; renderAll(); break;
       case 'turn-day': E.advanceDays(S, 1); afterTick(true); break;
       case 'turn-week': E.advanceDays(S, 7); afterTick(true); break;
-      case 'reset': try { localStorage.removeItem(LS_KEY); } catch (e) { } { const p = Prefs.get(); p.noms = {}; Prefs.save(); } S = E.newGame(); ui.confirm = null; Save.touch(); go('station', 'A'); intro(); return;
+      case 'reset': try { localStorage.removeItem(LS_KEY); } catch (e) { } S = E.newGame(); ui.confirm = null; Save.touch(); go('station', 'A'); intro(); return;
       case 'intro-go': S.seenIntro = true; closeSheet(true); paused = coachDebut(); go('station', 'A'); Save.touch(); return;
       case 'offline-ok': closeSheet(); return;
       case 'export': {
@@ -362,7 +362,7 @@
     let loaded = null;
     if (data && data.state) { try { loaded = JSON.parse(data.state); } catch (e) { } }
     if (!loaded) loaded = Save.readLocal();
-    if (loaded && loaded.v !== E.SAVE_VERSION) { try { localStorage.setItem('cwt-backup-v' + loaded.v, JSON.stringify(loaded)); } catch (e) { } }
+    if (loaded && loaded.v !== E.SAVE_VERSION) { try { localStorage.setItem((PREVIEW ? 'cwt-backup-apercu-v' : 'cwt-backup-v') + loaded.v, JSON.stringify(loaded)); } catch (e) { } }
     loaded = E.migrate(loaded);
     Save.fresh = !loaded;
     S = Save.fresh ? E.newGame() : loaded;

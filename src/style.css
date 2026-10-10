@@ -749,3 +749,19 @@ textarea.code { width: 100%; border: 1px solid var(--filet); border-radius: 12px
 .objectif:not([hidden]) { animation: obj-entre .3s ease-out; }
 @keyframes obj-entre { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .objectif:not([hidden]) { animation: none; } .anneau-p { transition: none; } }
+
+/* ===== v3 : bilan annuel ===== */
+.an-liste { display: grid; gap: 10px; }
+.an-ligne { display: grid; grid-template-columns: 62px 1fr auto; gap: 10px; align-items: center; }
+.an-y { font: 700 17px/1.1 var(--f-ui); color: var(--encre); }
+.an-y small { display: block; font: 600 11px/1.2 var(--f-ui); color: var(--encre-2); }
+.an-barre { height: 12px; border-radius: 6px; background: var(--carrelage); overflow: hidden; }
+.an-barre i { display: block; height: 100%; border-radius: 6px; }
+.an-v { display: grid; justify-items: end; }
+.an-v b { font: 700 18px/1.1 var(--f-ui); }
+.an-v small { font: 500 12px/1.2 var(--f-ui); color: var(--encre-2); }
+.an-compare { display: flex; gap: 8px; align-items: flex-start; margin: 12px 0 4px; font: 500 14.5px/1.35 var(--f-ui); color: var(--encre); }
+.an-leg { display: flex; gap: 14px; align-items: center; margin: 12px 0 4px; font: 700 13px/1 var(--f-ui); color: var(--encre); }
+.an-leg i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -2px; }
+.an-leg-m { margin-left: auto; color: var(--encre-2); font-weight: 600; }
+.an-graph { width: 100%; height: auto; display: block; }

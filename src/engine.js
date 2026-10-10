@@ -7,11 +7,20 @@ const E = (() => {
   // GAME_VERSION : affichée au joueur, à incrémenter à chaque release (voir CHANGELOG.md)
   // SAVE_VERSION : format de sauvegarde. Toute modification de la structure de l'état
   // doit l'incrémenter ET ajouter une étape dans MIGRATIONS (jamais casser une partie).
-  const GAME_VERSION = '1.1.0';
-  const SAVE_VERSION = 3;
+  const GAME_VERSION = '3.0.0';
+  const SAVE_VERSION = 4;
   const MIGRATIONS = {
     // n: state => { ...transforme un état au format n vers n+1... }
-    // exemple : 3: st => { st.nouveauChamp = st.nouveauChamp ?? valeurParDefaut; },
+    // 3 → 4 (v3) : carte en villes (nouveaux terrains), historique annuel, nom de station,
+    // clients découragés par la file et par le prix.
+    3: st => {
+      for (const l of LOTS) if (!st.lots.some(x => x.id === l.id)) st.lots.push({ id: l.id, owner: null, studied: false, sale: null });
+      for (const s2 of Object.values(st.stations)) {
+        s2.name = s2.name || null;
+        s2.day = Object.assign({ deter: 0, cher: 0 }, s2.day);
+      }
+      seedYears(st);
+    }
   };
 
   const DAY_SEC = 20;               // 1 jour de jeu = 20 s en x1
@@ -61,41 +70,66 @@ const E = (() => {
   const RECON_COST = 2000, STUDY_COST = 3000, START_CASH = 40000;
   const STAFF_BONUS = [0, 0.20, 0.15, 0.10];
 
+  // une case de la carte = une ville ; sa taille donne le nombre de terrains (3 à 6)
   const SECTORS = [
-    { id: 0, name: 'Les Bruyères', x: 0, y: 266, w: 150, h: 134 },
-    { id: 1, name: 'Côte du Phare', x: 150, y: 266, w: 150, h: 134 },
-    { id: 2, name: 'Vallée du Morin', x: 0, y: 133, w: 150, h: 133 },
-    { id: 3, name: 'Plateau du Moulin', x: 150, y: 133, w: 150, h: 133 },
-    { id: 4, name: 'Pays de Kerval', x: 0, y: 0, w: 150, h: 133 },
-    { id: 5, name: 'Vaucelles', x: 150, y: 0, w: 150, h: 133 }
+    { id: 0, name: 'Les Bruyères', kind: 'Village', x: 0, y: 266, w: 150, h: 134 },
+    { id: 1, name: 'Saint-Gildas', kind: 'Bourg côtier', x: 150, y: 266, w: 150, h: 134 },
+    { id: 2, name: 'Pont-Morin', kind: 'Bourg', x: 0, y: 133, w: 150, h: 133 },
+    { id: 3, name: 'Le Moulin', kind: 'Petite ville', x: 150, y: 133, w: 150, h: 133 },
+    { id: 4, name: 'Kerval', kind: 'Ville', x: 0, y: 0, w: 150, h: 133 },
+    { id: 5, name: 'Vaucelles', kind: 'Grande ville', x: 150, y: 0, w: 150, h: 133 }
   ];
+  // position d'un terrain ou d'un quartier dans sa ville : grille 3 × 3 (colonne, rangée)
+  const cell = (sec, c, r) => ({ x: SECTORS[sec].x + 28 + c * 47, y: SECTORS[sec].y + 60 + r * 34 });
 
   // zones : base = clients/jour au stade rural ; growth/decline = proba par mois de lancer un changement
+  // quartiers (zones) : chacun dans sa ville, avec son palier
   const ZONES = [
-    { id: 'bruyeres', name: 'Les Bruyères', sector: 0, x: 62, y: 330, base: 45, stage: 0, min: 0, max: 1, growth: 0.06, decline: 0 },
-    { id: 'croix', name: 'La Croix-Verte', sector: 0, x: 108, y: 292, base: 40, stage: 0, min: 0, max: 0, growth: 0, decline: 0 },
-    { id: 'gildas', name: 'Saint-Gildas', sector: 1, x: 196, y: 300, base: 36, stage: 0, min: 0, max: 2, growth: 0.2, decline: 0 },
-    { id: 'plages', name: 'Route des Plages', sector: 1, x: 252, y: 360, base: 44, stage: 0, min: 0, max: 1, growth: 0.04, decline: 0, seasonal: true },
-    { id: 'pont', name: 'Pont-Morin', sector: 2, x: 70, y: 200, base: 40, stage: 1, min: 0, max: 2, growth: 0.14, decline: 0.05 },
-    { id: 'moulin', name: 'ZA du Moulin', sector: 3, x: 220, y: 196, base: 40, stage: 1, min: 1, max: 3, growth: 0.45, decline: 0.02 },
-    { id: 'kerval', name: 'Kerval', sector: 4, x: 70, y: 62, base: 42, stage: 3, min: 2, max: 3, growth: 0, decline: 0.08 },
-    { id: 'porte', name: 'Porte de Vaucelles', sector: 5, x: 226, y: 60, base: 50, stage: 4, min: 3, max: 4, growth: 0, decline: 0.02 }
+    { id: 'bruyeres', name: 'Les Bruyères', sector: 0, ...cell(0, 0, 1), base: 45, stage: 0, min: 0, max: 1, growth: 0.06, decline: 0 },
+    { id: 'croix', name: 'La Croix-Verte', sector: 0, ...cell(0, 2, 1), base: 40, stage: 0, min: 0, max: 0, growth: 0, decline: 0 },
+    { id: 'gildas', name: 'Saint-Gildas', sector: 1, ...cell(1, 0, 1), base: 36, stage: 0, min: 0, max: 2, growth: 0.2, decline: 0 },
+    { id: 'plages', name: 'Route des Plages', sector: 1, ...cell(1, 2, 1), base: 44, stage: 0, min: 0, max: 1, growth: 0.04, decline: 0, seasonal: true },
+    { id: 'pont', name: 'Pont-Morin', sector: 2, ...cell(2, 1, 1), base: 40, stage: 1, min: 0, max: 2, growth: 0.14, decline: 0.05 },
+    { id: 'moulin', name: 'ZA du Moulin', sector: 3, ...cell(3, 1, 1), base: 40, stage: 1, min: 1, max: 3, growth: 0.45, decline: 0.02 },
+    { id: 'kerval', name: 'Kerval', sector: 4, ...cell(4, 1, 1), base: 42, stage: 3, min: 2, max: 3, growth: 0, decline: 0.08 },
+    { id: 'porte', name: 'Porte de Vaucelles', sector: 5, ...cell(5, 1, 1), base: 50, stage: 4, min: 3, max: 4, growth: 0, decline: 0.02 }
   ];
 
+  // terrains : 3 à 6 par ville selon sa taille (les identifiants existants ne changent jamais)
   const LOTS = [
-    { id: 'A', name: 'Terrain des Bruyères', zone: 'bruyeres', x: 52, y: 346, slots: 2, q: 4, loc: 1.0 },
-    { id: 'B', name: 'Carrefour de la Croix-Verte', zone: 'croix', x: 116, y: 310, slots: 5, q: 10, loc: 1.1 },
-    { id: 'K', name: 'Saint-Gildas, route de la gare', zone: 'gildas', x: 186, y: 318, slots: 3, q: 6, loc: 1.0 },
-    { id: 'L', name: 'Aire du Phare', zone: 'plages', x: 262, y: 378, slots: 4, q: 8, loc: 1.0 },
-    { id: 'C', name: 'Pont-Morin, sortie de bourg', zone: 'pont', x: 54, y: 216, slots: 3, q: 6, loc: 1.0 },
-    { id: 'D', name: 'Pont-Morin, place du marché', zone: 'pont', x: 98, y: 206, slots: 2, q: 4, loc: 1.2 },
-    { id: 'E', name: 'ZA du Moulin, parking du Super', zone: 'moulin', x: 248, y: 204, slots: 4, q: 8, loc: 1.2 },
-    { id: 'F', name: 'ZA du Moulin, lot 7', zone: 'moulin', x: 200, y: 222, slots: 6, q: 12, loc: 0.9 },
-    { id: 'G', name: 'Kerval, galerie marchande', zone: 'kerval', x: 40, y: 66, slots: 4, q: 8, loc: 1.1 },
-    { id: 'H', name: 'Kerval, rond-point Nord', zone: 'kerval', x: 96, y: 84, slots: 6, q: 12, loc: 1.0 },
-    { id: 'M', name: 'Kerval, ZI des Landes', zone: 'kerval', x: 30, y: 112, slots: 8, q: 16, loc: 0.8 },
-    { id: 'I', name: 'Porte de Vaucelles, rocade', zone: 'porte', x: 266, y: 74, slots: 8, q: 20, loc: 1.25 },
-    { id: 'J', name: 'Porte de Vaucelles, Drive', zone: 'porte', x: 204, y: 92, slots: 5, q: 10, loc: 1.0 }
+    // Les Bruyères (village, 3)
+    { id: 'A', name: 'Terrain des Bruyères', zone: 'bruyeres', ...cell(0, 0, 2), slots: 2, q: 4, loc: 1.0 },
+    { id: 'N', name: 'Les Bruyères, route de la mairie', zone: 'bruyeres', ...cell(0, 1, 2), slots: 3, q: 6, loc: 0.9 },
+    { id: 'B', name: 'Carrefour de la Croix-Verte', zone: 'croix', ...cell(0, 2, 0), slots: 5, q: 10, loc: 1.1 },
+    // Saint-Gildas (bourg côtier, 4)
+    { id: 'K', name: 'Saint-Gildas, route de la gare', zone: 'gildas', ...cell(1, 0, 0), slots: 3, q: 6, loc: 1.0 },
+    { id: 'O', name: "Saint-Gildas, place de l'église", zone: 'gildas', ...cell(1, 1, 0), slots: 2, q: 4, loc: 1.15 },
+    { id: 'L', name: 'Aire du Phare', zone: 'plages', ...cell(1, 2, 2), slots: 4, q: 8, loc: 1.0 },
+    { id: 'P', name: 'Route des Plages, camping des Dunes', zone: 'plages', ...cell(1, 1, 2), slots: 4, q: 8, loc: 0.9 },
+    // Pont-Morin (bourg, 4)
+    { id: 'C', name: 'Pont-Morin, sortie de bourg', zone: 'pont', ...cell(2, 0, 0), slots: 3, q: 6, loc: 1.0 },
+    { id: 'D', name: 'Pont-Morin, place du marché', zone: 'pont', ...cell(2, 2, 0), slots: 2, q: 4, loc: 1.2 },
+    { id: 'Q', name: 'Pont-Morin, avenue de la gare', zone: 'pont', ...cell(2, 0, 2), slots: 4, q: 8, loc: 0.95 },
+    { id: 'R', name: 'Pont-Morin, rond-point du Lavoir', zone: 'pont', ...cell(2, 2, 2), slots: 3, q: 6, loc: 1.05 },
+    // Le Moulin (petite ville, 5)
+    { id: 'E', name: 'ZA du Moulin, parking du Super', zone: 'moulin', ...cell(3, 0, 0), slots: 4, q: 8, loc: 1.2 },
+    { id: 'V', name: 'Le Moulin, centre-bourg', zone: 'moulin', ...cell(3, 1, 0), slots: 2, q: 4, loc: 1.1 },
+    { id: 'F', name: 'ZA du Moulin, lot 7', zone: 'moulin', ...cell(3, 2, 0), slots: 6, q: 12, loc: 0.9 },
+    { id: 'T', name: 'Le Moulin, rue des Tanneurs', zone: 'moulin', ...cell(3, 0, 2), slots: 3, q: 6, loc: 0.95 },
+    { id: 'U', name: 'ZA du Moulin, entrée nord', zone: 'moulin', ...cell(3, 2, 2), slots: 5, q: 10, loc: 1.0 },
+    // Kerval (ville, 5)
+    { id: 'G', name: 'Kerval, galerie marchande', zone: 'kerval', ...cell(4, 0, 0), slots: 4, q: 8, loc: 1.1 },
+    { id: 'W', name: 'Kerval, boulevard de la Mer', zone: 'kerval', ...cell(4, 1, 0), slots: 3, q: 6, loc: 1.05 },
+    { id: 'H', name: 'Kerval, rond-point Nord', zone: 'kerval', ...cell(4, 2, 0), slots: 6, q: 12, loc: 1.0 },
+    { id: 'M', name: 'Kerval, ZI des Landes', zone: 'kerval', ...cell(4, 0, 2), slots: 8, q: 16, loc: 0.8 },
+    { id: 'X', name: 'Kerval, zone des Pins', zone: 'kerval', ...cell(4, 2, 2), slots: 5, q: 10, loc: 0.95 },
+    // Vaucelles (grande ville, 6)
+    { id: 'I', name: 'Porte de Vaucelles, rocade', zone: 'porte', ...cell(5, 0, 0), slots: 8, q: 20, loc: 1.25 },
+    { id: 'Y', name: 'Vaucelles, centre-ville', zone: 'porte', ...cell(5, 1, 0), slots: 3, q: 6, loc: 1.15 },
+    { id: 'J', name: 'Porte de Vaucelles, Drive', zone: 'porte', ...cell(5, 2, 0), slots: 5, q: 10, loc: 1.0 },
+    { id: 'Z', name: 'Vaucelles, rocade sud', zone: 'porte', ...cell(5, 0, 2), slots: 6, q: 12, loc: 1.05 },
+    { id: 'AA', name: 'Vaucelles, quartier de la gare', zone: 'porte', ...cell(5, 1, 2), slots: 4, q: 8, loc: 0.9 },
+    { id: 'AB', name: "Vaucelles, parc d'activités", zone: 'porte', ...cell(5, 2, 2), slots: 5, q: 10, loc: 1.0 }
   ];
 
   const RIVALS = [
@@ -168,6 +202,7 @@ const E = (() => {
       log: [], hist: [],         // hist: {d, cash, rev, cost}
       today: { rev: 0, cost: 0, capex: 0, fin: 0 },
       totals: { rev: 0, served: 0 },
+      years: {},                 // { '2027': { rev:[12], cost:[12], served:[12], perdus:[12] } }
       obj: 0, nextId: 1, overdraftDays: 0, over: false,
       lastSeen: Date.now(), created: Date.now(), seenIntro: false
     };
@@ -193,8 +228,8 @@ const E = (() => {
       lot: lotId, owner, units: [], chem: 0, contract: 0,
       prices: defaultPrices(s, lotId), staff: null,
       q: { portique: 0, hp: 0 }, cur: { served: { portique: 0, hp: 0 }, cap: { portique: 0, hp: 0 } },
-      day: { served: 0, lost: 0, rev: 0, cost: 0, arr: 0 },
-      hist: [], since: s.day
+      day: { served: 0, lost: 0, rev: 0, cost: 0, arr: 0, deter: 0, cher: 0 },
+      hist: [], since: s.day, name: null, years: {}
     };
   }
 
@@ -203,6 +238,8 @@ const E = (() => {
   const zoneDef = id => ZONES.find(z => z.id === id);
   const zoneOf = (s, lotId) => s.zones.find(z => z.id === lotDef(lotId).zone);
   const lotState = (s, id) => s.lots.find(l => l.id === id);
+  // nom affiché d'une station : celui choisi par le joueur, sinon le nom du terrain
+  const stationName = (s, lotId) => (s.stations[lotId] && s.stations[lotId].name) || lotDef(lotId).name;
   const sectorOfLot = lotId => zoneDef(lotDef(lotId).zone).sector;
 
   function refPrice(s, lotId, type) {
@@ -251,6 +288,12 @@ const E = (() => {
     }
     return a * CHEM[st.chem].attr * d.loc;
   }
+  function attractAt(s, st, prices) {
+    const keep = st.prices; st.prices = prices;
+    const a = attract(s, st);
+    st.prices = keep;
+    return a;
+  }
   function staffBonus(s, st) {
     if (!st.staff) return 0;
     const e = s.staff.find(x => x.id === st.staff);
@@ -293,15 +336,20 @@ const E = (() => {
     for (const zId in byZone) {
       const list = byZone[zId];
       const demand = zoneDemand(s, zId, s.day) * dayMult(s, zId) * HOUR_W[idx] / 100;
-      const atts = list.map(st => {
+      const base = list.map(st => st.units.some(u => u.down === 0) ? attract(s, st) : 0);
+      const atts = list.map((st, i) => {
         const fill = (st.q.portique + st.q.hp) / Math.max(1, qmaxOf(st));
-        const working = st.units.some(u => u.down === 0);
-        return working ? attract(s, st) * (1 - 0.5 * clamp(fill, 0, 1)) : 0;
+        return base[i] * (1 - 0.5 * clamp(fill, 0, 1));
       });
       const sum = atts.reduce((a, b) => a + b, 0) + A0;
       list.forEach((st, i) => {
         if (!atts[i]) return;
         const lambda = demand * atts[i] / sum;
+        // clients découragés (valeurs attendues) : par la file qui s'allonge, et par un prix
+        // au-dessus du prix de référence ; ils vont ailleurs sans jamais entrer dans la file
+        st.day.deter = (st.day.deter || 0) + demand * (base[i] - atts[i]) / sum;
+        const atRef = attractAt(s, st, defaultPrices(s, st.lot));
+        if (atRef > base[i]) st.day.cher = (st.day.cher || 0) + demand * (atRef - base[i]) / (sum - atts[i] + atRef);
         const arrivals = poisson(lambda);
         st.day.arr += arrivals;
         // répartition par type
@@ -364,15 +412,23 @@ const E = (() => {
   // ---------- fin de journée ----------
   function endOfDay(s) {
     const out = [];
+    const jour = { served: 0, perdus: 0 };
     // coûts fixes, contrats
     for (const st of Object.values(s.stations)) {
       let c = FIXED_DAY + PER_UNIT_DAY * st.units.length;
       c += st.units.reduce((a, u) => a + CONTRACTS[st.contract].perUnitDay * EQUIP[u.type].slots, 0);
       st.day.cost += c;
       money(s, st.owner, -c, 0, c);
-      st.hist.push({ rev: Math.round(st.day.rev), served: st.day.served, lost: st.day.lost, cost: Math.round(st.day.cost) });
+      const deter = Math.round(st.day.deter || 0), cher = Math.round(st.day.cher || 0);
+      st.hist.push({ rev: Math.round(st.day.rev), served: st.day.served, lost: st.day.lost, cost: Math.round(st.day.cost), deter, cher });
       if (st.hist.length > 60) st.hist.shift();
-      st.day = { served: 0, lost: 0, rev: 0, cost: 0, arr: 0 };
+      if (st.owner === 'player') {
+        const y = yearOf(s.d);
+        const sy = (st.years = st.years || {})[y] = st.years[y] || { rev: 0, served: 0, perdus: 0 };
+        sy.rev += Math.round(st.day.rev); sy.served += st.day.served; sy.perdus += st.day.lost + deter + cher;
+        jour.served += st.day.served; jour.perdus += st.day.lost + deter + cher;
+      }
+      st.day = { served: 0, lost: 0, rev: 0, cost: 0, arr: 0, deter: 0, cher: 0 };
       // vieillissement et pannes
       for (const u of st.units) {
         u.age += 1;
@@ -387,18 +443,20 @@ const E = (() => {
           u.down = ct.delay * 24;
           const bill = r100(EQUIP[u.type].repair * ct.repairMul * (0.7 + rnd() * 0.6));
           if (bill) { money(s, st.owner, -bill, 0, bill); }
-          if (st.owner === 'player') log(s, `Panne : ${EQUIP[u.type].name} ${t.n} à ${lotDef(st.lot).name}. Intervention sous ${ct.delay} j${bill ? ` (${fmt(bill)})` : ''}.`, 'bad');
+          if (st.owner === 'player') log(s, `Panne : ${EQUIP[u.type].name} ${t.n} à ${stationName(s, st.lot)}. Intervention sous ${ct.delay} j${bill ? ` (${fmt(bill)})` : ''}.`, 'bad');
         }
-        if (st.owner === 'player' && u.age === Math.round(lifeDays * 0.9)) log(s, `${EQUIP[u.type].name} ${t.n} de ${lotDef(st.lot).name} arrive en fin de vie : pense à le remplacer.`, 'bad');
+        if (st.owner === 'player' && u.age === Math.round(lifeDays * 0.9)) log(s, `${EQUIP[u.type].name} ${t.n} de ${stationName(s, st.lot)} arrive en fin de vie : pense à le remplacer.`, 'bad');
       }
       // incident : monnayeur bloqué
       if (st.owner === 'player' && st.units.length && rnd() < 0.003) {
         const u = pick(st.units);
-        if (u.down === 0) { u.down = 12; log(s, `Monnayeur bloqué sur un ${EQUIP[u.type].name.toLowerCase()} à ${lotDef(st.lot).name} (12 h d'arrêt).`, 'bad'); }
+        if (u.down === 0) { u.down = 12; log(s, `Monnayeur bloqué sur un ${EQUIP[u.type].name.toLowerCase()} à ${stationName(s, st.lot)} (12 h d'arrêt).`, 'bad'); }
       }
     }
     // salaires
     for (const e of s.staff) { s.cash -= STAFF_DAY; s.today.cost += STAFF_DAY; }
+    // historique annuel (par mois) du joueur
+    addYear(s, s.d, { rev: s.today.rev, cost: s.today.cost, served: jour.served, perdus: jour.perdus });
     // historique joueur
     s.hist.push({ d: Math.floor(s.day), cash: Math.round(s.cash), rev: Math.round(s.today.rev), cost: Math.round(s.today.cost), capex: Math.round(s.today.capex), fin: Math.round(s.today.fin) });
     if (s.hist.length > 120) s.hist.shift();
@@ -424,6 +482,46 @@ const E = (() => {
     nextWeather(s, day);
     seasonalEvents(s, day);
     return out;
+  }
+
+  // ---------- historique annuel ----------
+  function yearOf(day) { return String(dateOf(day).getUTCFullYear()); }
+  function yearBucket(s, y) {
+    s.years = s.years || {};
+    return s.years[y] = s.years[y] || { rev: Array(12).fill(0), cost: Array(12).fill(0), served: Array(12).fill(0), perdus: Array(12).fill(0) };
+  }
+  function addYear(s, day, v) {
+    const y = yearBucket(s, yearOf(day)), m = dateOf(day).getUTCMonth();
+    for (const k of ['rev', 'cost', 'served', 'perdus']) y[k][m] = Math.round(y[k][m] + (v[k] || 0));
+  }
+  // migration : reconstitue l'historique annuel à partir de ce que l'ancienne sauvegarde connaît
+  // (120 derniers jours au détail ; le CA plus ancien est réparti uniformément sur les jours précédents)
+  function seedYears(st) {
+    if (st.years && Object.keys(st.years).length) return;
+    st.years = {};
+    const hist = (st.hist || []).filter(h => typeof h.d === 'number');
+    for (const h of hist) addYear(st, h.d, { rev: h.rev, cost: h.cost });
+    const first = hist.length ? hist[0].d : st.d;
+    const known = hist.reduce((a, h) => a + h.rev, 0);
+    const before = Math.max(0, ((st.totals && st.totals.rev) || 0) - known);
+    if (before > 0 && first > 0) {
+      for (let d = 0; d < first; d++) addYear(st, d, { rev: before / first });
+      for (const y of Object.keys(st.years)) st.years[y].estime = true;
+    }
+    // lavages et clients perdus des stations (60 derniers jours au plus)
+    for (const s2 of Object.values(st.stations || {})) {
+      if (s2.owner !== 'player') continue;
+      s2.years = s2.years || {};
+      const n = (s2.hist || []).length;
+      (s2.hist || []).forEach((h, i) => {
+        const d = st.d - n + i;
+        if (d < 0) return;
+        addYear(st, d, { served: h.served, perdus: h.lost });
+        const y = yearOf(d);
+        const sy = s2.years[y] = s2.years[y] || { rev: 0, served: 0, perdus: 0 };
+        sy.rev += h.rev; sy.served += h.served; sy.perdus += h.lost;
+      });
+    }
   }
 
   function nextWeather(s, day) {
@@ -511,7 +609,7 @@ const E = (() => {
       if (rnd() < 0.05) {
         const price = r1000(10000 * STAGES[zoneOf(s, st.lot).stage].price);
         s.offers.push({ id: 'o' + (s.nextId++), lot: st.lot, price, slots: 2, q: 4, until: day + 20 });
-        log(s, `La parcelle voisine de ${lotDef(st.lot).name} se libère : +2 emplacements pour ${fmt(price)}. Offre valable 20 jours.`, 'good');
+        log(s, `La parcelle voisine de ${stationName(s, st.lot)} se libère : +2 emplacements pour ${fmt(price)}. Offre valable 20 jours.`, 'good');
       }
     }
   }
@@ -522,9 +620,10 @@ const E = (() => {
     mine.sort((a, b) => stationValue(s, a.lot) - stationValue(s, b.lot));
     const st = mine[0];
     const v = Math.round(stationValue(s, st.lot) * 0.7);
+    const nom = stationName(s, st.lot);
     sellStation(s, st.lot, 0.7);
     s.overdraftDays = 0;
-    log(s, `La banque a forcé la vente de ${lotDef(st.lot).name} pour ${fmt(v)}.`, 'bad');
+    log(s, `La banque a forcé la vente de ${nom} pour ${fmt(v)}.`, 'bad');
     if (s.cash < -OVERDRAFT && !Object.values(s.stations).some(x => x.owner === 'player')) {
       s.over = true; log(s, 'Faillite : plus rien à vendre. Game over.', 'bad');
     }
@@ -603,7 +702,7 @@ const E = (() => {
       }
       st.prices = { portique: Math.round(refPrice(s, c.l.id, 'portique') * (def.profile === 'discounter' ? 0.8 : 1) * 2) / 2, hp: Math.round(refPrice(s, c.l.id, 'hp') * (def.profile === 'discounter' ? 0.8 : 1) * 2) / 2 };
       const known = s.sectors[sectorOfLot(c.l.id)].revealed;
-      log(s, `${def.name} s'installe ${known ? 'à ' + d.name : 'dans un secteur encore inconnu'}.`, 'rival');
+      log(s, `${def.name} s'installe ${known ? 'à ' + d.name : 'dans une ville encore inconnue'}.`, 'rival');
     }
   }
 
@@ -613,7 +712,7 @@ const E = (() => {
     if (sec.revealed) return { ok: false, msg: 'Déjà reconnu' };
     if (s.cash < RECON_COST) return { ok: false, msg: 'Trésorerie insuffisante' };
     s.cash -= RECON_COST; s.today.capex += RECON_COST; sec.revealed = true;
-    log(s, `Secteur ${SECTORS[sectorId].name} reconnu.`, 'info');
+    log(s, `${SECTORS[sectorId].name} reconnue : ses terrains apparaissent sur la carte.`, 'info');
     return { ok: true };
   }
   function study(s, lotId) {
@@ -643,7 +742,7 @@ const E = (() => {
     if (s.cash < t.price) return { ok: false, msg: 'Trésorerie insuffisante' };
     s.cash -= t.price; s.today.capex += t.price;
     st.units.push(unit(type, tier));
-    log(s, `${e.name} ${t.n} installé à ${lotDef(lotId).name}.`, 'good');
+    log(s, `${e.name} ${t.n} installé à ${stationName(s, lotId)}.`, 'good');
     return { ok: true };
   }
   function sellUnit(s, lotId, idx) {
@@ -657,12 +756,13 @@ const E = (() => {
   function sellStation(s, lotId, mul = 1) {
     const st = s.stations[lotId];
     const v = Math.round(stationValue(s, lotId) * mul);
+    const nom = stationName(s, lotId);
     if (st.staff) unassign(s, lotId);
     s.cash += v;
     delete s.stations[lotId];
     const l = lotState(s, lotId); l.owner = null;
     s.offers = s.offers.filter(o => o.lot !== lotId);
-    if (mul === 1) log(s, `${lotDef(lotId).name} vendu ${fmt(v)}.`, 'info');
+    if (mul === 1) log(s, `${nom} vendu ${fmt(v)}.`, 'info');
     return { ok: true, v };
   }
   function takeOffer(s, offerId) {
@@ -673,7 +773,13 @@ const E = (() => {
     const st = s.stations[o.lot];
     st.extended = true; st.extraSlots = (st.extraSlots || 0) + o.slots; st.extraQ = (st.extraQ || 0) + o.q;
     s.offers = s.offers.filter(x => x !== o);
-    log(s, `Parcelle voisine rachetée : ${lotDef(o.lot).name} gagne 2 emplacements.`, 'good');
+    log(s, `Parcelle voisine rachetée : ${stationName(s, o.lot)} gagne 2 emplacements.`, 'good');
+    return { ok: true };
+  }
+  function renameStation(s, lotId, name) {
+    const st = s.stations[lotId];
+    if (!st || st.owner !== 'player') return { ok: false };
+    st.name = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 18) || null;
     return { ok: true };
   }
   // ---------- personnel ----------
@@ -688,7 +794,7 @@ const E = (() => {
     const st = s.stations[lotId];
     if (!e || !st) return { ok: false };
     if (e.stations.length >= 3) return { ok: false, msg: '3 stations maximum par employé' };
-    if (e.stations.length && e.stations.some(l => sectorOfLot(l) !== sectorOfLot(lotId))) return { ok: false, msg: 'Partage possible seulement dans un même secteur' };
+    if (e.stations.length && e.stations.some(l => sectorOfLot(l) !== sectorOfLot(lotId))) return { ok: false, msg: 'Partage possible seulement dans une même ville' };
     if (st.staff) unassign(s, lotId);
     e.stations.push(lotId); st.staff = e.id;
     return { ok: true };
@@ -789,7 +895,7 @@ const E = (() => {
   const OBJECTIVES = [
     { t: 'Installe ton premier équipement aux Bruyères', done: s => s.stations.A && s.stations.A.units.length > 0 },
     { t: 'Lance le temps et encaisse 1 000 € de chiffre d\'affaires', done: s => s.totals.rev >= 1000 },
-    { t: 'Reconnais un secteur voisin', done: s => s.sectors.filter(x => x.revealed).length >= 2 },
+    { t: 'Reconnais une ville voisine', done: s => s.sectors.filter(x => x.revealed).length >= 2 },
     { t: "Commande une étude d'implantation", done: s => s.lots.some(l => l.studied) },
     { t: 'Achète un deuxième terrain', done: s => Object.values(s.stations).filter(x => x.owner === 'player').length >= 2 },
     { t: 'Atteins 1 000 € de chiffre d\'affaires en une journée', done: s => s.hist.some(h => h.rev >= 1000) },
@@ -840,7 +946,12 @@ const E = (() => {
       st2.day = st2.day || { served: 0, lost: 0, rev: 0, cost: 0, arr: 0 };
       st2.hist = st2.hist || [];
       st2.prices = st2.prices || defaultPrices(st, st2.lot);
+      if (st2.name === undefined) st2.name = null;
+      st2.years = st2.years || {};
+      st2.day.deter = st2.day.deter || 0; st2.day.cher = st2.day.cher || 0;
     }
+    for (const l of LOTS) if (!st.lots.some(x => x.id === l.id)) st.lots.push({ id: l.id, owner: null, studied: false, sale: null });
+    st.years = st.years || {};
     return st;
   }
   function newGameSkeleton() {
@@ -855,7 +966,8 @@ const E = (() => {
     unitResale, stationValue, slotsOf, qmaxOf, usedSlots, freeSlots, zoneDemand, attract, staffBonus, dateOf, seasonOf,
     reveal, study, buyLot, buyUnit, sellUnit, sellStation, takeOffer, hire, assign, unassign, fire,
     patrimoine, debt, avgRev, avgNet, creditLimit, loanRate, monthlyPay, borrow, repay, offline,
-    log, fmt, checkObjectives, title, priceFactor, dayMult
+    log, fmt, checkObjectives, title, priceFactor, dayMult,
+    stationName, renameStation, yearOf, attractAt
   };
 })();
 if (typeof module !== 'undefined') module.exports = E;
