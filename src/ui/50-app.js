@@ -75,7 +75,8 @@
     const t = ui.toastQ.shift();
     const el = document.createElement('div');
     el.className = 'toast ' + t.kind;
-    el.textContent = t.text;
+    const pk = { bad: 'critique', good: 'ok', goal: 'recompense', zone: 'opportunite', rival: 'info' }[t.kind];
+    el.innerHTML = (pk ? picto(pk, 18) : '') + `<span>${esc(t.text)}</span>`;
     box.appendChild(el);
     ui.lastToast = now;
     setTimeout(() => el.remove(), 3600);
@@ -135,7 +136,8 @@
     const st = S.stations[lotId];
     if (!st || st.owner !== 'player') { ui.tab = 'map'; return viewMonde(); }
     const l = E.lotDef(lotId), z = E.zoneOf(S, lotId);
-    return `<h2 class="station-titre">${esc(l.name)}</h2>${stationViewHtml(lotId)}`;
+    const nom = stationNom(lotId);
+    return `<h2 class="station-titre">${esc(nom || l.name)}${nom ? `<small>${esc(l.name)}</small>` : ''}</h2>${stationViewHtml(lotId)}`;
   }
 
   function sheetAddUnit(lotId, type) { feuilleOpen('catalogue', { lot: lotId, type: type || null, tier: type ? catalogueDefautTier(type) : null }); }
@@ -208,7 +210,7 @@
       case 'mode': S.mode = el.dataset.v; if (S.mode === 'turn') paused = true; else paused = false; renderAll(); break;
       case 'turn-day': E.advanceDays(S, 1); afterTick(true); break;
       case 'turn-week': E.advanceDays(S, 7); afterTick(true); break;
-      case 'reset': try { localStorage.removeItem(LS_KEY); } catch (e) { } S = E.newGame(); ui.confirm = null; Save.touch(); go('station', 'A'); intro(); return;
+      case 'reset': try { localStorage.removeItem(LS_KEY); } catch (e) { } { const p = Prefs.get(); p.noms = {}; Prefs.save(); } S = E.newGame(); ui.confirm = null; Save.touch(); go('station', 'A'); intro(); return;
       case 'intro-go': S.seenIntro = true; closeSheet(true); paused = coachDebut(); go('station', 'A'); Save.touch(); return;
       case 'offline-ok': closeSheet(); return;
       case 'export': {
@@ -254,7 +256,7 @@
       for (const l of S.log) { if (l === ui.logTop) break; fresh.push(l); }
       ui.logTop = S.log[0];
       // les moments forts ont leur pop-up : pas de toast en double
-      for (const l of fresh.reverse()) if ((l.kind !== 'info' || /Neige|Monnayeur/.test(l.text)) && !/^Panne :|^La parcelle voisine|^Alerte de la banque|forcé la vente|^Faillite/.test(l.text)) toast(l.text, l.kind);
+      for (const l of fresh.reverse()) if ((l.kind !== 'info' || /Neige|Monnayeur/.test(l.text)) && !/^La parcelle voisine|^Alerte de la banque|forcé la vente|^Faillite/.test(l.text)) toast(l.text, l.kind);
     }
     if (S.d !== ui.lastDay) { ui.lastDay = S.d; if (ui.tab === 'station') forceRender = true; }
     for (const t of E.checkObjectives(S)) popupMission(t);

@@ -22,17 +22,7 @@ function evenementsScan() {
   ui.prev = now;
   if (!prev) return;
   ui.pops = ui.pops || [];
-  // pannes nouvelles (une seule pop-up par jour de jeu, le reste va dans la cloche)
-  for (const lot in now.pannes) {
-    const st = S.stations[lot], av = prev.pannes[lot];
-    if (!av || av.length !== now.pannes[lot].length) continue;
-    st.units.forEach((u, i) => {
-      if (!av[i] && u.down >= PANNE_MIN_H && ui.panneJour !== Math.floor(S.d)) {
-        ui.panneJour = Math.floor(S.d);
-        ui.pops.push({ k: 'panne', lot, i });
-      }
-    });
-  }
+  // les pannes ne bloquent pas : simple message (journal) + cloche, sans bouton à valider
   for (const o of S.offers) if (!prev.offres.has(o.id) && S.stations[o.lot]) ui.pops.push({ k: 'opp', id: o.id });
   if (now.decouvert >= 1 && prev.decouvert === 0) ui.pops.push({ k: 'banque' });
   // vente forcée par la banque (lue dans le journal)
@@ -105,11 +95,11 @@ function popupHtml(p) {
       return bandeau('rouge', 'oups', 'Alerte de la banque', 'Découvert dépassé', `<span class="pop-picto">${picto('critique', 28)}</span>`)
         + `<div class="pop-corps">${ligne('Trésorerie', fmt(S.cash))}${ligne('Découvert autorisé', fmt(-E.OVERDRAFT))}
           <p class="f-texte">Si la trésorerie reste sous le découvert pendant 90 jours, la banque vend une station. Emprunte, vends un équipement ou baisse tes coûts.</p></div>
-        <div class="f-actions">${bouton({ label: 'Voir la banque', ic: 'bank', fa: 'pop-banque', neon: true })}${bouton({ label: 'Plus tard', fa: 'pop-fermer' })}</div>`;
+        <div class="f-actions">${bouton({ label: 'Voir les finances', ic: 'bank', fa: 'pop-banque', neon: true })}${bouton({ label: 'Plus tard', fa: 'pop-fermer' })}</div>`;
     case 'vente':
       return bandeau('rouge', 'oups', 'Banque', 'Vente forcée', `<span class="pop-picto">${picto('critique', 28)}</span>`)
         + `<div class="pop-corps"><p class="f-texte">${esc(p.text)}</p></div>
-        <div class="f-actions">${bouton({ label: 'Voir la banque', ic: 'bank', fa: 'pop-banque', neon: true })}${bouton({ label: 'Plus tard', fa: 'pop-fermer' })}</div>`;
+        <div class="f-actions">${bouton({ label: 'Voir les finances', ic: 'bank', fa: 'pop-banque', neon: true })}${bouton({ label: 'Plus tard', fa: 'pop-fermer' })}</div>`;
     case 'faillite':
       return bandeau('rouge', 'oups', 'Game over', 'Faillite')
         + `<div class="pop-corps"><p class="f-texte">La banque a fermé le robinet. Ton empire a tenu ${S.d} jours et encaissé ${fmt(S.totals.rev)} de chiffre d'affaires.</p></div>

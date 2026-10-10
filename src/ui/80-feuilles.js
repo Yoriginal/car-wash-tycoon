@@ -323,10 +323,25 @@ FEUILLES.station = ({ lot, confirm }) => {
     actions += bouton({ label: 'Racheter la parcelle', ic: 'plus', montant: fmt(offre.price), fa: 'st-racheter', neon: !pret, off: !!pret, test: 'racheter' });
     if (pret && !pret.refuse) actions += bouton({ label: 'Racheter avec un prêt', ic: 'loan', montant: `${fmt(pret.mensuel)}/mois`, fa: 'st-racheter-pret', neon: true });
   }
+  actions += bouton({ label: 'Renommer la station', ic: 'tag', fa: 'ouvrir', data: { k: 'nommer' }, test: 'renommer' });
   actions += confirm
     ? bouton({ label: 'Confirmer la vente', ic: 'sell', montant: fmt(E.stationValue(S, lot)), fa: 'st-vendre-ok', danger: true }) + bouton({ label: 'Garder la station', fa: 'annuler' })
     : bouton({ label: 'Vendre la station', ic: 'sell', montant: fmt(E.stationValue(S, lot)), fa: 'st-vendre' });
-  return feuille({ ic: 'station', titre: E.lotDef(lot).name, sous: `Palier ${z.stage + 1} · ${esc(E.STAGES[z.stage].n)}`, corps, actions });
+  const nom = stationNom(lot);
+  return feuille({ ic: 'station', titre: nom || E.lotDef(lot).name, sous: `${nom ? esc(E.lotDef(lot).name) + ' · ' : ''}Palier ${z.stage + 1} · ${esc(E.STAGES[z.stage].n)}`, corps, actions });
+};
+
+// ---------- Nommer la station ----------
+const NOM_MAX = 18;
+function nomEffacer(lot) { const p = Prefs.get(); if (p.noms) { delete p.noms[lot]; Prefs.save(); } }
+FEUILLES.nommer = ({ lot, achat }) => {
+  if (!S.stations[lot]) return '';
+  const actuel = stationLabel(lot);
+  return feuille({ ic: 'station', titre: achat ? 'Terrain acheté !' : 'Renommer la station', sous: esc(E.lotDef(lot).name),
+    corps: `<label class="f-texte" for="nom-station">${achat ? 'Donne un nom à ta station : il s\'affiche sur l\'enseigne et sur la carte.' : 'Nouveau nom (il s\'affiche sur l\'enseigne et sur la carte) :'}</label>
+      <input id="nom-station" class="champ" type="text" maxlength="${NOM_MAX}" value="${escSvg(actuel)}" autocomplete="off" enterkeyhint="done" data-test="nom-station">`,
+    actions: bouton({ label: 'Valider ce nom', ic: 'check', fa: 'nom-ok', neon: true, test: 'nom-ok' }) + bouton({ label: achat ? 'Plus tard' : 'Annuler', fa: 'nom-garder' }),
+    note: achat ? 'Ensuite : touche un emplacement libre pour installer ton premier équipement.' : '' });
 };
 
 // ---------- File d'attente ----------
@@ -389,7 +404,15 @@ function feuilleAct(a, el) {
       break;
     }
     case 'st-vendre': f.confirm = true; break;
-    case 'st-vendre-ok': r = E.sellStation(S, lot); closeSheet(true); go('map'); toast(`Station vendue ${fmt(r.v)}.`, 'info'); renderHud(); Save.touch(); return;
+    case 'nom-ok': {
+      const v = (($('#nom-station') || {}).value || '').replace(/\s+/g, ' ').trim().slice(0, NOM_MAX);
+      const p = Prefs.get(); p.noms = p.noms || {};
+      if (v) p.noms[lot] = v; else delete p.noms[lot];
+      Prefs.save(); closeSheet(); toast(v ? `Station baptisée « ${v} ».` : 'Nom par défaut rétabli.', 'good');
+      return;
+    }
+    case 'nom-garder': closeSheet(); return;
+    case 'st-vendre-ok': nomEffacer(lot); r = E.sellStation(S, lot); closeSheet(true); go('map'); toast(`Station vendue ${fmt(r.v)}.`, 'info'); renderHud(); Save.touch(); return;
   }
   if (r && !r.ok && r.msg) toast(r.msg, 'bad');
   renderHud();
@@ -404,6 +427,9 @@ function catalogueDefautTier(type) {
 
 // ---------- gestes : curseur de prix, glisser vers le bas pour fermer ----------
 function feuillesBind() {
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.id === 'nom-station') { e.preventDefault(); feuilleAct('nom-ok', e.target); }
+  });
   document.addEventListener('input', e => {
     const b = e.target.closest && e.target.closest('.banque-range');
     if (b) { banqueMaj(+b.value); return; }

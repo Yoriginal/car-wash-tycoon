@@ -93,7 +93,7 @@ const ASTUCES = {
     texte: 'Signal faible : une zone va changer de palier. Les bons emplacements se prennent avant que le flux ne grimpe.' },
   pret: { quand: () => S.loans.length > 0,
     cible: () => '#hud-cash',
-    texte: 'Prêt en cours : la mensualité part chaque mois. Tu peux le solder dans la Banque quand tu veux.' }
+    texte: 'Prêt en cours : la mensualité part chaque mois. Tu peux le solder dans Finances quand tu veux.' }
 };
 
 // ---------- affichage ----------

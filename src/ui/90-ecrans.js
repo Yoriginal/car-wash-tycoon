@@ -1,4 +1,4 @@
-/* Feuilles ouvertes depuis le dock et le HUD : Empire (mur des stations), Banque (guichet),
+/* Feuilles ouvertes depuis le dock et le HUD : Empire (mur des stations), Finances (guichet),
    Missions (tableau de liège), Vestiaire (équipe), Réglages (boîte à gants).
    Elles s'ouvrent par-dessus l'écran en cours (Monde ou Station) et se referment pour y revenir. */
 
@@ -49,7 +49,7 @@ FEUILLES.empire = f => {
     note: mine.length > 1 ? 'Toucher une station ouvre son écran. Le tri « par état » remonte les pannes en premier.' : '' });
 };
 
-// ---------- Banque ----------
+// ---------- Finances ----------
 function courbeTresorerie() {
   const h = S.hist.slice(-60);
   if (h.length < 2) return '<p class="f-texte t-flou">La courbe apparaît après quelques jours de jeu.</p>';
@@ -96,7 +96,7 @@ FEUILLES.banque = f => {
   const corps = bilan + courbeTresorerie()
     + `<div class="f-h2"><h3>Emprunter</h3><small>jusqu'à ${fmt(lim)}</small></div>${emprunt}`
     + (S.loans.length ? `<div class="f-h2"><h3>Prêts en cours</h3></div><div class="prets">${prets}</div>` : '');
-  return feuille({ ic: 'bank', titre: 'Banque', sous: 'Guichet de la Caisse du Chrome', corps,
+  return feuille({ ic: 'bank', titre: 'Finances', sous: 'Guichet de la Caisse du Chrome', corps,
     note: S.cash < 0 ? `Découvert autorisé : ${fmt(E.OVERDRAFT)}. Au-delà pendant 90 jours, la banque vend une station.` : '' });
 };
 function banqueMaj(v) {

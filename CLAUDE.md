@@ -46,6 +46,17 @@ mise en ligne arrive sur son téléphone, donc **une version ne doit jamais cass
 - Ajouter un test dans `tests/engine.test.js` pour toute nouvelle mécanique.
 - Mobile d'abord : 390 px de large, cibles tactiles de 44 px minimum.
 
+## Règle de découpage des versions (Yoann)
+- Ce qui touche au moteur ou à la sauvegarde attend une version majeure (v3, v4…).
+- Les améliorations d'interface (mineures) sont faites tout de suite.
+
+## Prochaine version majeure (v3, moteur) — demandé par Yoann le 2026-10-10
+- Finances : CA annuel comparé aux années précédentes (le moteur ne garde que 60 j par station et
+  120 j au global ; il faut un historique annuel dans la sauvegarde, avec migration).
+- Carte en villes : chaque case = une ville différente, avec 3 à 6 emplacements selon sa taille
+  (refonte des zones et terrains du moteur, migration des terrains existants).
+- Nom de station dans la sauvegarde (aujourd'hui dans `cwt-ui-v1`, à migrer dans `S`).
+
 ## Feuille de route (idées validées avec Yoann)
 - Marketing et fidélisation : cartes, abonnements, avis Google.
 - Types de clients, autres équipements (aspirateurs, gonfleurs, tunnel).

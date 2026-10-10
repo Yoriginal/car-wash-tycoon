@@ -25,14 +25,20 @@ function unitState(st, u) {
   return st.day.served > 0 || hier > 0 ? 'actif' : 'arret';
 }
 function stationOpen() { return S.h >= E.OPEN && S.h < E.CLOSE; }
-function stationLabel(lotId) { return E.zoneDef(E.lotDef(lotId).zone).name.replace(/^ZA du /, 'ZA ').replace(/^Porte de /, ''); }
+// nom choisi par le joueur (préférence d'interface cwt-ui-v1, jamais dans la sauvegarde), sinon nom de la zone
+function stationNom(lotId) {
+  const st = S.stations[lotId];
+  const n = st && st.owner === 'player' && (Prefs.get().noms || {})[lotId];
+  return n || null;
+}
+function stationLabel(lotId) { return stationNom(lotId) || E.zoneDef(E.lotDef(lotId).zone).name.replace(/^ZA du /, 'ZA ').replace(/^Porte de /, ''); }
 
 // enseigne Googie : nom + panneau tarifaire des types installés ; grésille si un équipement est en panne
 function enseigneSvg(st, broken) {
   const nom = stationLabel(st.lot);
   const rows = E.TYPES.filter(t => st.units.some(u => u.type === t));
   const lines = rows.length ? rows : [];
-  const fs = nom.length > 12 ? 15 : 19;
+  const fs = nom.length > 15 ? 12.5 : nom.length > 12 ? 15 : 19;
   const tarif = lines.map((t, i) => `<text x="40" y="${100 + i * 14}" font-family="Barlow Condensed" font-weight="700" font-size="11" fill="#F5A300">${t === 'hp' ? 'PISTE HP' : 'PORTIQUE'}</text><text x="134" y="${100 + i * 14}" text-anchor="end" font-family="Barlow Condensed" font-weight="700" font-size="12" fill="#F5A300">${euro(st.prices[t])}</text>`).join('');
   const h = lines.length ? 20 + lines.length * 14 : 0;
   return `<g class="enseigne${broken ? ' gresille' : ''}" data-sa="enseigne" role="button" aria-label="Enseigne et prix">

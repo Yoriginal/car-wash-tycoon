@@ -20,6 +20,10 @@ Format : `MAJEUR.MINEUR.CORRECTIF`
   estimations du panneau Prix et potentiel des terrains en clients par mois. Pas d'animation de
   pièce à chaque recette : seule la trésorerie défile en continu. Équipement en panne qui grésille,
   mouvements réduits respectés.
+- Banque renommée Finances ; tendance de la trésorerie (résultat sur 30 jours) recalculée une fois
+  par semaine de jeu pour ne plus bouger avec le compteur.
+- Pannes en simple message (et dans la cloche), sans pop-up à valider.
+- Nommer sa station à l'achat d'un terrain, et la renommer depuis le panneau Station.
 - Moteur et format de sauvegarde inchangés : les parties en cours continuent telles quelles.
 
 ## Infrastructure — 2026-10-09

@@ -7,7 +7,7 @@ const NAV = [
   { id: 'stations', ic: 'empire', t: 'Empire' },
   { id: 'dial' },
   { id: 'journal', ic: 'missions', t: 'Missions' },
-  { id: 'finances', ic: 'bank', t: 'Banque' },
+  { id: 'finances', ic: 'bank', t: 'Finances' },
 ];
 const TOOLS = [
   { id: 'prix', ic: 'tag', t: 'Prix' },

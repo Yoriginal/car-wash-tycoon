@@ -83,6 +83,12 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     ok(!!(await pg.$('[data-test="revendre"]')), 'fiche équipement ouverte depuis le diorama');
     await pg.screenshot({ path: join(root, 'build/ui-smoke-fiche.png') });
     await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    await pg.click('[data-test="tool-station"]'); await pg.waitForTimeout(300);
+    await pg.click('[data-test="renommer"]'); await pg.waitForTimeout(300);
+    await pg.fill('[data-test="nom-station"]', 'Chez Yoann');
+    await pg.click('[data-test="nom-ok"]'); await pg.waitForTimeout(400);
+    const nom = await pg.evaluate(() => ({ enseigne: (document.querySelector('.enseigne-nom') || {}).textContent, save: JSON.stringify(__CWT.S).includes('Chez Yoann') }));
+    ok(nom.enseigne === 'Chez Yoann' && !nom.save, 'station renommée (enseigne), nom hors sauvegarde');
 
     // 4. Monde : fiche Terrain et fiche Reconnaissance
     await pg.click('[data-nav="map"]'); await pg.waitForTimeout(400);
@@ -103,7 +109,7 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     await pg.click('[data-nav="finances"]'); await pg.waitForTimeout(300);
     const cash0 = await pg.evaluate(() => __CWT.S.cash);
     await pg.click('[data-test="emprunter"]'); await pg.waitForTimeout(300);
-    ok(await pg.evaluate(c => __CWT.S.loans.length === 1 && __CWT.S.cash > c, cash0), 'emprunt accordé depuis la Banque');
+    ok(await pg.evaluate(c => __CWT.S.loans.length === 1 && __CWT.S.cash > c, cash0), 'emprunt accordé depuis Finances');
     await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
     await pg.click('[data-nav="journal"]'); await pg.waitForTimeout(300);
     await pg.click('[data-test="reglages"]'); await pg.waitForTimeout(300);

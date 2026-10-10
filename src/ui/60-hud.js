@@ -10,8 +10,15 @@ function hudDateText() {
 }
 // niveau du joueur : objectifs remplis (1 au départ, 9 au maximum)
 function playerLevel() { return Math.min(E.OBJECTIVES.length, S.obj + 1); }
-// résultat d'exploitation sur 30 jours glissants (CA − coûts, hors investissements et prêts)
-function moisNet() { return Math.round(S.hist.slice(-29).reduce((a, x) => a + x.rev - x.cost, 0) + S.today.rev - S.today.cost); }
+// résultat d'exploitation sur les 30 derniers jours complets (CA − coûts, hors investissements et prêts),
+// recalculé une fois par semaine de jeu pour ne pas bouger en même temps que la trésorerie
+function moisNet() {
+  const sem = Math.floor(S.d / 7);
+  if (!ui.tendance || ui.tendance.sem !== sem || ui.tendance.S !== S) {
+    ui.tendance = { sem, S, v: Math.round(S.hist.slice(-30).reduce((a, x) => a + x.rev - x.cost, 0)) };
+  }
+  return ui.tendance.v;
+}
 // événement le plus marquant en cours (pollen, sel, vacances...)
 function currentEvent() {
   const ev = S.events.filter(e => !e.zone || S.sectors[E.zoneDef(e.zone).sector].revealed);

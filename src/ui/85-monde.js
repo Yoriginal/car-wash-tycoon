@@ -50,7 +50,8 @@ function lotSvg(l) {
   let inner, label;
   if (own === 'player') {
     const st = S.stations[l.id];
-    inner = innerSvg(sprite('monde/ma_station', { NOM: stationLabel(l.id).toUpperCase() }))
+    const nm = stationLabel(l.id).toUpperCase();
+    inner = innerSvg(sprite('monde/ma_station', { NOM: nm.length > 13 ? nm.slice(0, 12) + '…' : nm }))
       + `<g transform="translate(118,10) scale(1)">${innerSvg(picto(etatStation(st), 24))}</g>`;
     label = `Ma station ${l.name}`;
   } else if (own) {
@@ -296,7 +297,7 @@ function mondeAct(a) {
       const prix = ls.sale ? ls.sale.price : E.lotPrice(S, f.lot);
       if (a === 'acheter-terrain-pret') { const p = pretPour(prix, 5000); if (p && !p.refuse) { r = E.borrow(S, p.need, 7); if (!r.ok) break; } }
       r = E.buyLot(S, f.lot);
-      if (r.ok) { const lot = f.lot; closeSheet(true); go('station', lot); toast('Terrain acheté : installe tes équipements.', 'good'); renderHud(); Save.touch(); return true; }
+      if (r.ok) { const lot = f.lot; nomEffacer(lot); closeSheet(true); go('station', lot); renderHud(); Save.touch(); feuilleOpen('nommer', { lot, achat: true }); return true; }
       break;
     }
     case 'reconnaitre':

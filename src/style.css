@@ -736,3 +736,9 @@ textarea.code { width: 100%; border: 1px solid var(--filet); border-radius: 12px
 .kpis2 { grid-template-columns: repeat(4, 1fr); }
 .kpis2-l { grid-column: 1 / -1; margin: 2px 0 0; font: 600 11px/1.2 var(--f-ui); letter-spacing: .1em; text-transform: uppercase; color: var(--encre-2); text-align: right; }
 .kpi2 > .ic { color: var(--encre-2); }
+
+/* ===== nom de station ===== */
+.station-titre small { display: block; font: 600 12px/1.3 var(--f-ui); letter-spacing: .06em; color: var(--encre-2); margin-top: 2px; }
+.champ { width: 100%; min-height: 48px; margin-top: 8px; padding: 0 16px; border: 2px solid var(--encre); border-radius: 14px; background: var(--surface); color: var(--encre); font: 700 20px/1 var(--f-ui); }
+.champ:focus { outline: none; box-shadow: 0 0 0 3px var(--neon-aqua); }
+.toast .picto { vertical-align: -4px; margin-right: 6px; }
