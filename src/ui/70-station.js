@@ -14,13 +14,15 @@ function carSvg(color, x, y, k = 0.6, flip = false) {
   return `<g transform="${t}"><path d="M2,18 Q2,13 8,12 L20,11 Q24,5 32,4 L42,4 Q48,5 51,11 L57,11 L63,5.5 L63.5,14 Q64,20.5 60,21 L6,21 Q2,21 2,18 Z" fill="${color}" stroke="#8E989B" stroke-width="1" stroke-linejoin="round"/><path d="M24.5,11 Q27,6.4 32,6.3 L36,6.3 L36,11 Z M38,6.3 L42,6.3 Q46,7 48,11 L38,11 Z" fill="#1b2a30" opacity=".85"/><path d="M7,15.2 L58,15.2" stroke="#E8EEEE" stroke-width="1.2" opacity=".85"/><circle cx="15" cy="21" r="4.6" fill="#111" stroke="#8E989B"/><circle cx="15" cy="21" r="2.6" fill="#F4F0E6"/><circle cx="50" cy="21" r="4.6" fill="#111" stroke="#8E989B"/><circle cx="50" cy="21" r="2.6" fill="#F4F0E6"/></g>`;
 }
 
-// état visuel d'un équipement : panne > fin de vie > en marche > à l'arrêt
-function unitState(st, u, busyLeft) {
+// état visuel d'un équipement : panne > fin de vie > en marche > à l'arrêt.
+// « En marche » ne suit pas l'heure (pas de clignotement jour/nuit en vitesse ×10) :
+// un poste est en marche dès que la station a lavé des voitures aujourd'hui ou hier.
+function unitState(st, u) {
   const t = E.EQUIP[u.type].tiers[u.tier];
   if (u.down > 0) return 'panne';
   if (u.age > t.life * 365 * 0.85) return 'usure';
-  if (stationOpen() && busyLeft[u.type] > 0) { busyLeft[u.type] -= t.cap; return 'actif'; }
-  return 'arret';
+  const hier = st.hist.length ? st.hist[st.hist.length - 1].served : 0;
+  return st.day.served > 0 || hier > 0 ? 'actif' : 'arret';
 }
 function stationOpen() { return S.h >= E.OPEN && S.h < E.CLOSE; }
 function stationLabel(lotId) { return E.zoneDef(E.lotDef(lotId).zone).name.replace(/^ZA du /, 'ZA ').replace(/^Porte de /, ''); }
@@ -43,13 +45,12 @@ function enseigneSvg(st, broken) {
 }
 
 function postesSvg(st, cible) {
-  const busyLeft = { portique: st.cur.served.portique, hp: st.cur.served.hp };
   let x = ST.X0 + 6, out = '', i = 0;
   const k = ST.POSTE_H / 150;
   st.units.forEach((u, idx) => {
     const n = E.EQUIP[u.type].slots;
     const w = n * ST.POSTE_W;
-    const state = unitState(st, u, busyLeft);
+    const state = unitState(st, u);
     const name = `equipements/${TYPE_KEY[u.type]}_${TIER_KEY[u.tier]}_${state}`;
     const jours = Math.max(1, Math.ceil(u.down / 24)) + ' j';
     const sx = x + (w - ST.POSTE_W) / 2;
@@ -107,7 +108,7 @@ function stationSceneSvg(lotId) {
   const bw = slots * ST.POSTE_W + 12;
   const W = Math.max(390, ST.X0 + bw + 16 + (S.offers.some(o => o.lot === lotId) ? 70 : 0));
   const z = E.zoneOf(S, lotId);
-  const night = !stationOpen();
+  const night = false; // décor toujours de jour : le cycle jour/nuit défilait trop vite en ×10
   const broken = st.units.some(u => u.down > 0);
   const offer = S.offers.find(o => o.lot === lotId);
   const emp = st.staff ? S.staff.find(e => e.id === st.staff) : null;
@@ -137,20 +138,27 @@ function stationSceneSvg(lotId) {
   </svg>`;
 }
 
+// indicateurs mensuels : 30 derniers jours glissants (29 jours d'historique + la journée en cours)
+function stationMois(st) {
+  const h = st.hist.slice(-29);
+  const somme = k => h.reduce((a, x) => a + x[k], 0) + st.day[k];
+  const rev = somme('rev'), cost = somme('cost');
+  return { lavages: somme('served'), perdus: somme('lost'), rev: Math.round(rev), net: Math.round(rev - cost), jours: h.length + 1 };
+}
 function stationKpisHtml(st) {
-  const q = st.q.portique + st.q.hp;
-  return `<div class="kpi2"><span class="ic vert">${ASSETS['icones/car']}</span><span><b class="num" data-live="served">${st.day.served}</b><small>servis</small></span></div>
-    <div class="kpi2"><span class="ic rouge">${ASSETS['icones/carout']}</span><span><b class="num" data-live="lost">${st.day.lost}</b><small>perdus</small></span></div>
-    <div class="kpi2"><span class="ic">${ASSETS['icones/queue']}</span><span><b class="num" data-live="queue">${q}/${E.qmaxOf(st)}</b><small>file</small></span></div>
-    <div class="kpi2"><span class="ic ambre">${coin(22)}</span><span><b class="num" data-live="rev">${fmt(st.day.rev)}</b><small>CA jour</small></span></div>`;
+  const m = stationMois(st);
+  return `<div class="kpi2"><span class="ic vert">${ASSETS['icones/car']}</span><span><b class="num" data-live="served">${m.lavages.toLocaleString('fr-FR')}</b><small>lavages</small></span></div>
+    <div class="kpi2"><span class="ic rouge">${ASSETS['icones/carout']}</span><span><b class="num" data-live="lost">${m.perdus.toLocaleString('fr-FR')}</b><small>perdus</small></span></div>
+    <div class="kpi2"><span class="ic ambre">${coin(22)}</span><span><b class="num" data-live="rev">${kfmt(m.rev)}</b><small>CA</small></span></div>
+    <div class="kpi2"><span class="ic">${ASSETS['icones/up']}</span><span><b class="num" data-live="net">${kfmt(m.net)}</b><small>résultat</small></span></div>
+    <p class="kpis2-l">Sur 30 jours glissants</p>`;
 }
 
 // signature : la scène n'est reconstruite que si ce qui se voit a changé
 function stationSig(lotId) {
   const st = S.stations[lotId];
-  const busyLeft = { portique: st.cur.served.portique, hp: st.cur.served.hp };
-  return [E.slotsOf(st), stationOpen(), st.staff, S.offers.some(o => o.lot === lotId), st.prices.portique, st.prices.hp, E.zoneOf(S, lotId).stage,
-    st.units.map(u => u.type + u.tier + unitState(st, u, busyLeft) + (u.down > 0 ? Math.ceil(u.down / 24) : '')).join(','),
+  return [E.slotsOf(st), st.staff, S.offers.some(o => o.lot === lotId), st.prices.portique, st.prices.hp, E.zoneOf(S, lotId).stage,
+    st.units.map(u => u.type + u.tier + unitState(st, u) + (u.down > 0 ? Math.ceil(u.down / 24) : '')).join(','),
     st.q.portique + st.q.hp, JSON.stringify(cibleStation(lotId))].join('|');
 }
 function stationViewHtml(lotId) {
@@ -167,8 +175,7 @@ function stationLive() {
   const box = $('#scene-svg');
   if (box && box.dataset.sig !== sig) { box.innerHTML = stationSceneSvg(ui.lot); box.dataset.sig = sig; }
   const k = $('#station-kpis');
-  animStation(st);
-  if (k) { set(k, 'served', st.day.served); set(k, 'lost', st.day.lost); set(k, 'queue', `${st.q.portique + st.q.hp}/${E.qmaxOf(st)}`); set(k, 'rev', fmt(st.day.rev)); }
+  if (k) { const m = stationMois(st); set(k, 'served', m.lavages.toLocaleString('fr-FR')); set(k, 'lost', m.perdus.toLocaleString('fr-FR')); set(k, 'rev', kfmt(m.rev)); set(k, 'net', kfmt(m.net)); }
 }
 
 // objets touchés dans la scène : chacun ouvre son panneau

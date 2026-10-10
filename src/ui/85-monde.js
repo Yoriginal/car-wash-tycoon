@@ -260,7 +260,7 @@ FEUILLES.terrain = ({ lot }) => {
   const tendance = z.pending ? (z.pending.dir > 0 ? 'en hausse' : 'en baisse') : etudie ? trendText(z).toLowerCase() : 'inconnue';
   let corps = `<div class="t-plan"><span class="t-cases">${cases}<span class="t-file">${file}</span></span>
       <span class="t-infos"><b>${pluriel(l.slots, 'emplacement')}</b><small>file de ${l.q} voitures</small><small>${nRiv ? pluriel(nRiv, 'rival') + ' dans la zone' : 'aucun rival dans la zone'}${zd.seasonal ? ' · saisonnier' : ''}</small></span></div>
-    ${jaugeTerrain('Potentiel', etudie ? `≈ ${pr.exact} clients/j` : `${pr.lo} à ${pr.hi} clients/j`, (etudie ? pr.exact : pr.hi) / 400, etudie ? '' : 'flou')}
+    ${jaugeTerrain('Potentiel', etudie ? `≈ ${(pr.exact * 30).toLocaleString('fr-FR')} clients/mois` : `${(pr.lo * 30).toLocaleString('fr-FR')} à ${(pr.hi * 30).toLocaleString('fr-FR')} clients/mois`, (etudie ? pr.exact : pr.hi) / 400, etudie ? '' : 'flou')}
     ${jaugeTerrain('Concurrence', conc, comps.length / 3, 'ambre')}
     <div class="t-jauge"><div class="f-ligne"><span>Tendance</span><b>${tendance}</b></div>
       ${z.pending ? `<p class="f-texte">${picto('opportunite', 16)} ${esc(z.pending.signal)}</p>` : etudie ? '' : '<p class="f-texte t-flou">Une étude révèle le potentiel exact et la tendance.</p>'}</div>`;

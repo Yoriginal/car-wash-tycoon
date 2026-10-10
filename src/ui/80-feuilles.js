@@ -105,7 +105,8 @@ function prixLigneInfo(lotId, t) {
   const niv = niveauPrix(pf);
   const est = estimClients(lotId, st.prices).parType[t] || 0;
   const cap = capJour(st, t);
-  return { ref, niv, est: Math.round(est), cap, plein: est > cap * 0.8 };
+  // affichage mensuel (30 jours)
+  return { ref, niv, est: Math.round(est * 30), cap: cap * 30, plein: est > cap * 0.8 };
 }
 FEUILLES.prix = ({ lot }) => {
   const st = S.stations[lot];
@@ -127,9 +128,9 @@ FEUILLES.prix = ({ lot }) => {
       </div>
       <div class="prix-bas">
         <span class="prix-niv" data-pn="${t}">${NIVEAUX_PRIX.map((n, j) => `<i class="${n.c}${j === i.niv ? ' on' : ''}"></i>`).join('')}<b>${NIVEAUX_PRIX[i.niv].n}</b></span>
-        <span class="prix-est" data-pe="${t}">${icon('car')}<b class="num">≈ ${i.est} clients/j</b></span>
+        <span class="prix-est" data-pe="${t}">${icon('car')}<b class="num">≈ ${i.est.toLocaleString('fr-FR')} clients/mois</b></span>
       </div>
-      <p class="prix-cap${i.plein ? ' alerte' : ''}" data-pc="${t}">${i.plein ? picto('critique', 16) + ' ' : ''}Capacité : ${i.cap} lavages/j${i.plein ? ' : la file va déborder' : ''}</p>
+      <p class="prix-cap${i.plein ? ' alerte' : ''}" data-pc="${t}">${i.plein ? picto('critique', 16) + ' ' : ''}Capacité : ${i.cap.toLocaleString('fr-FR')} lavages/mois${i.plein ? ' : la file va déborder' : ''}</p>
     </div>`;
   }
   return feuille({
@@ -151,9 +152,9 @@ function prixMaj(t) {
     if (r) r.parentNode.style.setProperty('--p', (st.prices[tt] - 1) / 39);
     const pn = box.querySelector(`[data-pn="${tt}"]`);
     if (pn) { pn.querySelectorAll('i').forEach((el, j) => el.classList.toggle('on', j === i.niv)); pn.querySelector('b').textContent = NIVEAUX_PRIX[i.niv].n; }
-    const pe = box.querySelector(`[data-pe="${tt}"] b`); if (pe) pe.textContent = `≈ ${i.est} clients/j`;
+    const pe = box.querySelector(`[data-pe="${tt}"] b`); if (pe) pe.textContent = `≈ ${i.est.toLocaleString('fr-FR')} clients/mois`;
     const pc = box.querySelector(`[data-pc="${tt}"]`);
-    if (pc) { pc.classList.toggle('alerte', i.plein); pc.innerHTML = `${i.plein ? picto('critique', 16) + ' ' : ''}Capacité : ${i.cap} lavages/j${i.plein ? ' : la file va déborder' : ''}`; }
+    if (pc) { pc.classList.toggle('alerte', i.plein); pc.innerHTML = `${i.plein ? picto('critique', 16) + ' ' : ''}Capacité : ${i.cap.toLocaleString('fr-FR')} lavages/mois${i.plein ? ' : la file va déborder' : ''}`; }
   }
 }
 function prixSet(t, v) {
@@ -300,8 +301,8 @@ FEUILLES.station = ({ lot, confirm }) => {
   const st = S.stations[lot];
   if (!st || st.owner !== 'player') return '';
   const z = E.zoneOf(S, lot);
-  const h = st.hist.slice(-30);
-  const rev = h.reduce((a, x) => a + x.rev, 0), net = h.reduce((a, x) => a + x.rev - x.cost, 0), lost = h.reduce((a, x) => a + x.lost, 0);
+  const m = stationMois(st);
+  const rev = m.rev, net = m.net, lost = m.perdus.toLocaleString('fr-FR');
   const equip = st.units.reduce((a, u) => a + E.unitResale(u), 0);
   const offre = S.offers.find(o => o.lot === lot);
   let corps = `<div class="f-lignes">
@@ -310,9 +311,9 @@ FEUILLES.station = ({ lot, confirm }) => {
     ${ligne('dont équipements', fmt(equip), 'sous')}
     ${ligne('Emplacements', `${E.usedSlots(st)} / ${E.slotsOf(st)}`)}
     ${ligne('File d\'attente max.', `${E.qmaxOf(st)} voitures`)}
-    ${ligne(`CA sur ${h.length || 0} j`, fmt(rev))}
-    ${ligne('Résultat', signed(net), net >= 0 ? '' : 'neg')}
-    ${ligne('Clients perdus', lost)}
+    ${ligne('CA / mois', fmt(rev))}
+    ${ligne('Résultat / mois', signed(net), net >= 0 ? '' : 'neg')}
+    ${ligne('Clients perdus / mois', lost)}
   </div>`;
   let actions = '';
   if (offre) {
@@ -333,19 +334,18 @@ FEUILLES.file = ({ lot }) => {
   const st = S.stations[lot];
   if (!st) return '';
   const q = st.q.portique + st.q.hp, cap = E.qmaxOf(st);
-  const h = st.hist.slice(-7);
-  const lost7 = h.reduce((a, x) => a + x.lost, 0);
+  const h = st.hist.slice(-29);
+  const lost7 = h.reduce((a, x) => a + x.lost, 0) + st.day.lost;
   const capH = E.TYPES.reduce((a, t) => a + st.units.filter(u => u.type === t && u.down === 0).reduce((b, u) => b + E.EQUIP[t].tiers[u.tier].cap, 0), 0);
   const free = E.freeSlots(st);
   let conseil, actions = '';
   if (!st.units.length) { conseil = 'Aucun équipement : installe un premier poste.'; actions = bouton({ label: 'Ouvrir le catalogue', ic: 'plus', fa: 'ouvrir', data: { k: 'catalogue' }, neon: true }); }
   else if (lost7 > 0 && free > 0) { conseil = 'Des clients repartent faute de place : un équipement de plus absorberait la file.'; actions = bouton({ label: 'Ajouter un équipement', ic: 'plus', fa: 'ouvrir', data: { k: 'catalogue' }, neon: true }) + bouton({ label: 'Ajuster les prix', ic: 'tag', fa: 'ouvrir', data: { k: 'prix' } }); }
   else if (lost7 > 0) { conseil = 'La station est pleine : monter un peu les prix rapporte plus par lavage et raccourcit la file.'; actions = bouton({ label: 'Ajuster les prix', ic: 'tag', fa: 'ouvrir', data: { k: 'prix' }, neon: true }); }
-  else conseil = 'La file s\'écoule bien : aucun client perdu ces 7 derniers jours.';
+  else conseil = 'La file s\'écoule bien : aucun client perdu ce mois-ci.';
   const corps = `<div class="f-lignes">
     ${ligne('En file maintenant', `${q} / ${cap}`)}
-    ${ligne('Perdus aujourd\'hui', st.day.lost)}
-    ${ligne(`Perdus sur ${h.length || 0} j`, lost7)}
+    ${ligne('Clients perdus / mois', lost7.toLocaleString('fr-FR'))}
     ${ligne('Capacité en marche', `${capH} lavages/h`)}
   </div><p class="f-texte">${lost7 > 0 ? picto('critique', 18) : picto('ok', 18)} ${conseil}</p>`;
   return feuille({ ic: 'queue', titre: 'File d\'attente', sous: esc(stationLabel(lot)), corps, actions });

@@ -10,8 +10,8 @@ function hudDateText() {
 }
 // niveau du joueur : objectifs remplis (1 au départ, 9 au maximum)
 function playerLevel() { return Math.min(E.OBJECTIVES.length, S.obj + 1); }
-// résultat d'exploitation de la journée en cours (CA − coûts, hors investissements)
-function todayNet() { return Math.round(S.today.rev - S.today.cost); }
+// résultat d'exploitation sur 30 jours glissants (CA − coûts, hors investissements et prêts)
+function moisNet() { return Math.round(S.hist.slice(-29).reduce((a, x) => a + x.rev - x.cost, 0) + S.today.rev - S.today.cost); }
 // événement le plus marquant en cours (pollen, sel, vacances...)
 function currentEvent() {
   const ev = S.events.filter(e => !e.zone || S.sectors[E.zoneDef(e.zone).sector].revealed);
@@ -22,9 +22,9 @@ function hudRender() {
   const cash = $('#cash');
   cash.textContent = fmt(S.cash);
   cash.classList.toggle('neg', S.cash < 0);
-  const net = todayNet();
+  const net = moisNet();
   const tr = $('#trend');
-  tr.textContent = `${net >= 0 ? '▲' : '▼'} ${signed(net)} aujourd'hui`;
+  tr.textContent = `${net >= 0 ? '▲' : '▼'} ${signed(net)} / mois`;
   tr.className = 'trend ' + (net >= 0 ? 'up' : 'down');
   $('#hud-date').textContent = hudDateText();
   const w = S.weather.today;

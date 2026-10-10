@@ -15,8 +15,11 @@ Format : `MAJEUR.MINEUR.CORRECTIF`
 - Pop-ups des moments forts (panne, parcelle voisine, mission accomplie, retour d'absence, banque),
   cloche d'alertes et un seul objet en néon pour la prochaine action.
 - Écran titre, tutoriel avec Bulle et info-bulles de première fois (passables).
-- Animations sobres (pièce vers la trésorerie, voiture qui repart, panne qui grésille), mouvements
-  réduits respectés.
+- Pensé pour jouer en ×10 : décor de station toujours de jour, indicateurs de station et tendance
+  de la trésorerie sur 30 jours glissants (CA, résultat, lavages, clients perdus par mois),
+  estimations du panneau Prix et potentiel des terrains en clients par mois. Pas d'animation de
+  pièce à chaque recette : seule la trésorerie défile en continu. Équipement en panne qui grésille,
+  mouvements réduits respectés.
 - Moteur et format de sauvegarde inchangés : les parties en cours continuent telles quelles.
 
 ## Infrastructure — 2026-10-09

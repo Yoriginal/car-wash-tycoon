@@ -135,12 +135,7 @@
     const st = S.stations[lotId];
     if (!st || st.owner !== 'player') { ui.tab = 'map'; return viewMonde(); }
     const l = E.lotDef(lotId), z = E.zoneOf(S, lotId);
-    const h = last(st, 30);
-    const rev30 = sum(h, x => x.rev), net30 = rev30 - sum(h, x => x.cost);
-    let html = `<h2 class="station-titre">${esc(l.name)}</h2>
-      ${stationViewHtml(lotId)}
-      <p class="sub" style="margin:8px 0 0">30 derniers jours : CA ${fmt(rev30)} · résultat ${fmt(net30)} · ${sum(h, x => x.lost)} clients perdus</p>`;
-    return html;
+    return `<h2 class="station-titre">${esc(l.name)}</h2>${stationViewHtml(lotId)}`;
   }
 
   function sheetAddUnit(lotId, type) { feuilleOpen('catalogue', { lot: lotId, type: type || null, tier: type ? catalogueDefautTier(type) : null }); }
