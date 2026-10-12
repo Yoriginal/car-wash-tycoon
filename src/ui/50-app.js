@@ -324,12 +324,13 @@
 
 
   function offlineWelcome() {
+    // le moteur fait tourner les stations pendant l'absence (jours de jeu simulés)
     const off = E.offline(S, Date.now());
-    if (!off || off.gain <= 0) return false;
-    S.cash += off.gain;
-    S.lastSeen = Date.now();
+    if (!off) return false;
+    ui.logTop = S.log[0];          // pas de pluie de messages : le ticket résume l'absence
+    Save.local();
     ui.pops = ui.pops || [];
-    ui.pops.unshift({ k: 'absence', hours: off.hours, gain: off.gain });
+    ui.pops.unshift(Object.assign({ k: 'absence' }, off));
     popupNext();
     return true;
   }

@@ -68,6 +68,7 @@ const E = (() => {
   const CHEM = [{ n: 'Standard', attr: 1 }, { n: 'Premium', attr: 1.15 }];
   const FIXED_DAY = 12, PER_UNIT_DAY = 4, STAFF_DAY = 75, OVERDRAFT = 15000;
   const RECON_COST = 2000, STUDY_COST = 3000, START_CASH = 40000;
+  const OFFLINE_DAYS_PER_HOUR = 2, OFFLINE_MAX_DAYS = 60;   // absence : 1 h réelle = 2 jours de jeu, 2 mois au plus
   const STAFF_BONUS = [0, 0.20, 0.15, 0.10];
 
   // une case de la carte = une ville ; sa taille donne le nombre de terrains (3 à 6)
@@ -873,13 +874,27 @@ const E = (() => {
   }
   function advanceDays(s, n) { advance(s, n * 24); }
 
-  // gains hors ligne
+  // ---------- absence ----------
+  // Pendant l'absence du joueur, les stations tournent vraiment : le moteur simule les jours écoulés
+  // (ventes, coûts, pannes, météo, rivaux, prêts), à raison de OFFLINE_DAYS_PER_HOUR jours de jeu par
+  // heure réelle, plafonné à OFFLINE_MAX_DAYS. Uniquement en temps réel (le tour par tour attend le joueur).
   function offline(s, now) {
-    const ms = now - (s.lastSeen || now);
-    const hours = Math.min(8, ms / 3600000);
-    if (hours < 0.05) return 0;
-    const g = Math.max(0, Math.round(avgNet(s, 7) * hours * 3 * 0.5));
-    return { hours, gain: g };
+    if (s.mode !== 'realtime' || s.over || !s.lastSeen) return null;
+    const hours = (now - s.lastSeen) / 3600000;
+    const days = Math.min(OFFLINE_MAX_DAYS, Math.floor(hours * OFFLINE_DAYS_PER_HOUR));
+    if (days < 1) return null;
+    const avant = { cash: s.cash, rev: s.totals.rev, log: s.log[0], d: s.d };
+    advanceDays(s, days);
+    s.lastSeen = now;
+    const mine = Object.values(s.stations).filter(st => st.owner === 'player');
+    const n = s.d - avant.d;
+    const served = mine.reduce((a, st) => a + st.hist.slice(-n).reduce((b, h) => b + h.served, 0), 0);
+    const nouveaux = [];
+    for (const l of s.log) { if (l === avant.log) break; nouveaux.push(l); }
+    return {
+      hours, days: n, rev: Math.round(s.totals.rev - avant.rev), cash: Math.round(s.cash - avant.cash), served,
+      pannes: nouveaux.filter(l => /^Panne/.test(l.text)).length, over: !!s.over
+    };
   }
 
   function log(s, text, kind = 'info') {
@@ -961,7 +976,7 @@ const E = (() => {
   return {
     GAME_VERSION, SAVE_VERSION, migrate,
     DAY_SEC, OPEN, CLOSE, EQUIP, TYPES, CONTRACTS, STAGES, CHEM, SECTORS, ZONES, LOTS, RIVALS, WEATHER,
-    FIXED_DAY, PER_UNIT_DAY, STAFF_DAY, OVERDRAFT, RECON_COST, STUDY_COST, STAFF_BONUS, OBJECTIVES,
+    FIXED_DAY, PER_UNIT_DAY, STAFF_DAY, OVERDRAFT, RECON_COST, STUDY_COST, STAFF_BONUS, OBJECTIVES, OFFLINE_DAYS_PER_HOUR, OFFLINE_MAX_DAYS,
     newGame, advance, advanceDays, lotDef, zoneDef, zoneOf, lotState, sectorOfLot, refPrice, lotPrice,
     unitResale, stationValue, slotsOf, qmaxOf, usedSlots, freeSlots, zoneDemand, attract, staffBonus, dateOf, seasonOf,
     reveal, study, buyLot, buyUnit, sellUnit, sellStation, takeOffer, hire, assign, unassign, fire,

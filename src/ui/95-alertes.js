@@ -84,11 +84,13 @@ function popupHtml(p) {
         <div class="f-actions">${bouton({ label: 'Continuer', fa: 'pop-fermer', neon: true, test: 'pop-continuer' })}</div>`;
     }
     case 'absence': {
-      const hh = Math.floor(p.hours), mm = Math.round((p.hours - hh) * 60);
+      const h = Math.floor(p.hours), j = Math.floor(h / 24);
+      const duree = j ? `${pluriel(j, 'jour')}${h % 24 ? ' ' + (h % 24) + ' h' : ''}` : `${h} h ${String(Math.round((p.hours - h) * 60)).padStart(2, '0')}`;
       return `<div class="pop-titre">Pendant ton absence</div>
-        <div class="ticket">${ligne('Durée', `${hh ? hh + ' h ' : ''}${String(mm).padStart(hh ? 2 : 1, '0')}${hh ? '' : ' min'}`)}${ligne('Régime', 'mi-régime (50 %)')}${ligne('Stations', Object.values(S.stations).filter(st => st.owner === 'player').length)}
-          <div class="ticket-total"><span>Gains</span><b class="num">+${fmt(p.gain)}</b></div></div>
-        <div class="f-actions">${bouton({ label: 'Encaisser', ic: 'coin', fa: 'pop-fermer', neon: true, test: 'pop-encaisser' })}</div>`;
+        <div class="ticket">${ligne('Absence', duree)}${ligne('Temps écoulé en jeu', pluriel(p.days, 'jour'))}${ligne('Lavages', (p.served || 0).toLocaleString('fr-FR'))}${ligne('Pannes', p.pannes || 0)}${ligne('Chiffre d\'affaires', fmt(p.rev || 0))}
+          <div class="ticket-total"><span>Trésorerie</span><b class="num${p.cash < 0 ? ' neg' : ''}">${signed(p.cash || 0)}</b></div></div>
+        <p class="f-note">1 heure d'absence = ${E.OFFLINE_DAYS_PER_HOUR} jours de jeu, ${E.OFFLINE_MAX_DAYS} jours au plus. Le détail est dans le journal.</p>
+        <div class="f-actions">${bouton({ label: 'Reprendre', ic: 'coin', fa: 'pop-fermer', neon: true, test: 'pop-encaisser' })}</div>`;
     }
     case 'banque':
       if (S.cash >= -E.OVERDRAFT) return '';

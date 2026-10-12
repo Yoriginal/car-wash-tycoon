@@ -13,6 +13,10 @@ Format : `MAJEUR.MINEUR.CORRECTIF`
 - Nom de station gardé dans la sauvegarde (les noms donnés en 2.0 sont repris automatiquement).
 - Clients perdus réalistes : repartis d'une file pleine, découragés par la file, découragés par un
   prix au-dessus du prix habituel du coin ; détail dans le panneau File d'attente.
+- Absence : les stations tournent vraiment pendant que tu n'es pas là (ventes, coûts, pannes,
+  météo, rivaux, prêts simulés) : 1 heure d'absence = 2 jours de jeu, 60 jours au plus ; ticket
+  récapitulatif au retour (jours écoulés, lavages, pannes, CA, variation de trésorerie). Remplace
+  l'ancien forfait à mi-régime plafonné à 8 h (24 h d'absence ne valaient que 12 jours de résultat).
 - Sauvegarde au format 4 : migration automatique des parties 1.1 / 2.0, copie de l'ancienne gardée.
 - L'aperçu joue sur une copie de la partie : le jeu principal n'est jamais touché par un moteur
   plus récent ; Réglages → « Repartir de ma partie du jeu ».

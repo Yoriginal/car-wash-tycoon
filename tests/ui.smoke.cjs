@@ -29,10 +29,11 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     // 1. sauvegarde 1.1 existante
     let pg = await ctx.newPage();
     pg.on('pageerror', e => errors.push(String(e)));
-    await pg.addInitScript(f => { if (!sessionStorage.getItem('seeded')) { localStorage.clear(); localStorage.setItem('cwt-save-v3', f); sessionStorage.setItem('seeded', '1'); } }, fixture);
+    // partie quittée il y a 3 h : le moteur fait tourner les stations 6 jours de jeu
+    await pg.addInitScript(f => { if (!sessionStorage.getItem('seeded')) { localStorage.clear(); const o = JSON.parse(f); o.lastSeen = Date.now() - 3 * 3600000; localStorage.setItem('cwt-save-v3', JSON.stringify(o)); sessionStorage.setItem('seeded', '1'); } }, fixture);
     await pg.goto(url); await pg.waitForTimeout(900);
-    const st = await pg.evaluate(() => ({ d: __CWT.S.d, n: Object.values(__CWT.S.stations).filter(x => x.owner === 'player').length, units: __CWT.S.stations.C.units.length }));
-    ok(st.d === F.d, `partie 1.1 rechargée au jour ${st.d}`);
+    const st = await pg.evaluate(() => ({ d: __CWT.S.d, n: Object.values(__CWT.S.stations).filter(x => x.owner === 'player').length, units: __CWT.S.stations.C.units.length, ticket: !!document.querySelector('[data-test="pop-encaisser"]') }));
+    ok(st.d === F.d + 6 && st.ticket, `partie 1.1 rechargée, 3 h d'absence = 6 jours de jeu (jour ${F.d} → ${st.d}) et ticket affiché`);
     ok(st.n === 2 && st.units === F.stations.C.units.length, 'stations et équipements intacts');
     await pg.waitForTimeout(300); await pg.evaluate(() => window.dispatchEvent(new Event('pagehide')));
     const raw = await pg.evaluate(() => JSON.parse(localStorage.getItem('cwt-save-v3')));

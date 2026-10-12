@@ -175,4 +175,21 @@ test('nommer sa station : gardé dans la sauvegarde', () => {
   assert.equal(E.renameStation(s, 'G', 'X').ok, false, 'pas de renommage chez un rival');
 });
 
+test('absence : les stations tournent vraiment, proportionnellement au temps, avec un plafond', () => {
+  const mk = () => { const s = E.newGame(); E.buyUnit(s, 'A', 'hp', 0); E.buyUnit(s, 'A', 'hp', 0); E.advanceDays(s, 30); return s; };
+  const now = Date.now();
+  const s1 = mk(); s1.lastSeen = now - 10 * 60000;              // 10 min : rien
+  assert.equal(E.offline(s1, now), null);
+  const s2 = mk(); const d2 = s2.d; s2.lastSeen = now - 24 * 3600000;
+  const r2 = E.offline(s2, now);
+  assert.equal(r2.days, Math.min(E.OFFLINE_MAX_DAYS, 24 * E.OFFLINE_DAYS_PER_HOUR));
+  assert.equal(s2.d, d2 + r2.days);
+  assert.ok(r2.rev > 0 && r2.served > 0, 'CA et lavages pendant l\'absence');
+  const s3 = mk(); s3.lastSeen = now - 30 * 24 * 3600000;       // un mois : plafonné
+  assert.equal(E.offline(s3, now).days, E.OFFLINE_MAX_DAYS);
+  const s4 = mk(); s4.mode = 'turn'; s4.lastSeen = now - 24 * 3600000;
+  assert.equal(E.offline(s4, now), null, 'le tour par tour attend le joueur');
+  noNaN(s2);
+});
+
 console.log(`\n${passed} tests OK` + (process.exitCode ? ' — ÉCHECS ci-dessus' : ''));
