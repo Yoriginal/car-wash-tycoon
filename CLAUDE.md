@@ -55,7 +55,7 @@ mise en ligne arrive sur son téléphone, donc **une version ne doit jamais cass
 - Les améliorations d'interface (mineures) sont faites tout de suite.
 
 ## Version majeure v3 (moteur) — demandée par Yoann le 2026-10-10, en cours sur `feat/v3-moteur`
-Faite (3.0.0, format de sauvegarde 4) :
+Faite (3.0.0, format de sauvegarde 5) :
 - Finances : CA annuel comparé aux années précédentes (le moteur ne garde que 60 j par station et
   120 j au global ; il faut un historique annuel dans la sauvegarde, avec migration).
 - Carte en villes : chaque case = une ville différente, avec 3 à 6 emplacements selon sa taille
@@ -68,6 +68,9 @@ Détails techniques : `S.years[année] = { rev, cost, served, perdus }` (12 mois
 `st.years[année] = { rev, served, perdus }`, `st.name`, `st.day.deter` / `st.day.cher` (valeurs
 attendues, arrondies dans `st.hist`), une ville = une case de `SECTORS` (champ `kind`), terrains placés
 sur une grille 3 × 3 par ville (`cell()`).
+Ajouts demandés pendant la v3 : satisfaction (`st.note`, `st.avis` = 5 critères, `reputation()` dans
+`attract`), prix habituel par gamme (`EQUIP[t].tiers[i].ref`, `refPrice(s, lot, type, tier?)`),
+étude datée et renouvelable (`lots[].etude = { d, dem, stage }`), absence simulée (`offline()`).
 
 ## Feuille de route (idées validées avec Yoann)
 - Marketing et fidélisation : cartes, abonnements, avis Google.

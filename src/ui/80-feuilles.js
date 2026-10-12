@@ -246,11 +246,11 @@ FEUILLES.catalogue = f => {
     return `<button class="gamme${on ? ' on' : ''}${rentre ? '' : ' grise'}" data-fa="cat-gamme" data-v="${i}" data-test="tier-${i}" aria-pressed="${on}">
       <span class="gamme-visuel">${sprite(`equipements/${TYPE_KEY[f.type]}_${TIER_KEY[i]}_${on && rentre ? 'actif' : 'arret'}`, { J: '' })}</span>
       <b class="gamme-prix num">${fmt(t.price)}</b>${etoiles(ATTR_ETOILES[t.attr] || 3)}
-      <span class="gamme-stats"><span>${icon('car')}${t.cap} / h</span><span>${icon('wrench')}${virgule(t.fail)} / an</span><span>${icon('clock')}${t.life} ans</span><span>${icon('plus')}${pluriel(eq.slots, 'empl.').replace('empl.s', 'empl.')}</span></span>
+      <span class="gamme-stats"><span>${icon('car')}${t.cap} / h</span><span>${icon('wrench')}${virgule(t.fail)} / an</span><span>${icon('clock')}${t.life} ans</span><span>${icon('plus')}${pluriel(eq.slots, 'empl.').replace('empl.s', 'empl.')}</span><span>${icon('tag')}${euro(E.refPrice(S, f.lot, f.type, i))}</span></span>
       ${rentre ? '' : `<span class="gamme-raison">${picto('critique', 18)}Ne rentre pas : ${eq.slots} emplacements</span>`}
     </button>`;
   }).join('');
-  const legende = `<p class="gamme-legende"><span>${icon('car')}lavages/h</span><span>${icon('wrench')}pannes/an</span><span>${icon('clock')}durée de vie</span><span>${icon('plus')}place</span></p>`;
+  const legende = `<p class="gamme-legende"><span>${icon('car')}lavages/h</span><span>${icon('wrench')}pannes/an</span><span>${icon('clock')}durée de vie</span><span>${icon('plus')}place</span><span>${icon('tag')}prix habituel</span></p>`;
   const t = eq.tiers[f.tier];
   const assez = S.cash >= t.price;
   const pret = assez ? null : pretPour(t.price);
@@ -264,7 +264,7 @@ FEUILLES.catalogue = f => {
   if (!rentre) note = `${free ? pluriel(free, 'emplacement') + ' libre' + (free > 1 ? 's' : '') : 'Aucun emplacement libre'} : ${unNom} demande ${pluriel(eq.slots, 'emplacement')}.`;
   else if (pret && pret.refuse) note += ` Trésorerie insuffisante, et la banque ne prête pas ${fmt(pret.need)} pour l'instant.`;
   else if (pret) note += ` Prêt de ${fmt(pret.need)} sur 7 ans.`;
-  note += ` Prix de référence de la zone : ${euro(E.refPrice(S, f.lot, f.type))}.`;
+  note += ` L'étiquette donne le prix habituel de chaque gamme dans cette zone.`;
   return feuille({ ic: 'station', titre: 'Catalogue', sous: `Showroom · ${esc(stationLabel(f.lot))} · ${pluriel(free, 'emplacement')} libre${free > 1 ? 's' : ''}`,
     corps: seg + `<div class="gammes">${cartes}</div>` + legende, actions, note });
 };
@@ -313,9 +313,17 @@ FEUILLES.station = ({ lot, confirm }) => {
     ${ligne('File d\'attente max.', `${E.qmaxOf(st)} voitures`)}
     ${ligne('CA / mois', fmt(rev))}
     ${ligne('Résultat / mois', signed(net), net >= 0 ? '' : 'neg')}
-    ${ligne('Clients perdus / mois', lost)}
+    ${ligne('Note des clients', st.note == null ? 'pas encore d\'avis' : `★ ${noteTxt(st.note)} / 5`)}
   </div>`;
+  // potentiel de la zone : celui de la dernière étude, gardé après l'achat et renouvelable
+  const pr = potRange(lot);
+  corps += pr.etude
+    ? `<div class="f-h2"><h3>Potentiel de la zone</h3><small>étude du ${dateLongue(pr.etude.d)}</small></div>
+      ${jaugeTerrain('Clients possibles', `≈ ${(pr.exact * 30).toLocaleString('fr-FR')} clients/mois`, pr.exact / 400, '')}
+      <p class="f-texte t-flou">Tendance : ${esc(trendText(E.zoneOf(S, lot)).toLowerCase())}.${etudeVieillie(lot) ? ' La zone a changé depuis cette étude.' : ''}</p>`
+    : `<div class="f-h2"><h3>Potentiel de la zone</h3></div><p class="f-texte t-flou">Aucune étude pour ce terrain : commande-en une pour connaître le potentiel précis.</p>`;
   let actions = '';
+  actions += bouton({ label: pr.etude ? 'Nouvelle étude' : 'Commander une étude', ic: 'eye', montant: fmt(E.STUDY_COST), fa: 'st-etude', off: S.cash < E.STUDY_COST, neon: !pr.etude || etudeVieillie(lot), test: 'st-etude' });
   if (offre) {
     const jours = Math.max(0, offre.until - Math.floor(S.d));
     corps = `<div class="f-offre">${picto('opportunite', 26)}<span><b>La parcelle voisine se libère</b><small>+${pluriel(offre.slots, 'emplacement')}, +${offre.q} places de file · encore ${pluriel(jours, 'jour')}</small></span></div>` + corps;
@@ -323,6 +331,7 @@ FEUILLES.station = ({ lot, confirm }) => {
     actions += bouton({ label: 'Racheter la parcelle', ic: 'plus', montant: fmt(offre.price), fa: 'st-racheter', neon: !pret, off: !!pret, test: 'racheter' });
     if (pret && !pret.refuse) actions += bouton({ label: 'Racheter avec un prêt', ic: 'loan', montant: `${fmt(pret.mensuel)}/mois`, fa: 'st-racheter-pret', neon: true });
   }
+  actions += bouton({ label: 'Avis clients', ic: 'star', montant: st.note == null ? '' : `★ ${noteTxt(st.note)}`, fa: 'ouvrir', data: { k: 'avis' } });
   actions += bouton({ label: 'Renommer la station', ic: 'tag', fa: 'ouvrir', data: { k: 'nommer' }, test: 'renommer' });
   actions += confirm
     ? bouton({ label: 'Confirmer la vente', ic: 'sell', montant: fmt(E.stationValue(S, lot)), fa: 'st-vendre-ok', danger: true }) + bouton({ label: 'Garder la station', fa: 'annuler' })
@@ -378,7 +387,7 @@ function feuilleAct(a, el) {
   let r;
   if (mondeAct(a) || ecransAct(a, el) || popupAct(a, el)) return;
   switch (a) {
-    case 'ouvrir': feuilleOpen(el.dataset.k, { lot }); return;
+    case 'ouvrir': feuilleOpen(el.dataset.k, el.dataset.i != null ? { lot, i: +el.dataset.i } : { lot }); return;
     case 'annuler': f.confirm = null; f.confirmJeu = false; feuilleRefresh(); return;
     case 'prix-pas': prixSet(el.dataset.t, st.prices[el.dataset.t] + +el.dataset.d); return;
     case 'chimie': st.chem = +el.dataset.v; break;
@@ -415,6 +424,7 @@ function feuilleAct(a, el) {
       return;
     }
     case 'nom-garder': closeSheet(); return;
+    case 'st-etude': r = E.study(S, lot); if (r.ok) toast('Étude livrée : potentiel mis à jour.', 'good'); break;
     case 'st-vendre-ok': r = E.sellStation(S, lot); closeSheet(true); go('map'); toast(`Station vendue ${fmt(r.v)}.`, 'info'); renderHud(); Save.touch(); return;
   }
   if (r && !r.ok && r.msg) toast(r.msg, 'bad');

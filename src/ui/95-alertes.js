@@ -137,6 +137,7 @@ function alertesListe() {
   if (S.cash < -E.OVERDRAFT) out.push({ k: 'critique', t: 'Découvert dépassé', s: `Depuis ${pluriel(S.overdraftDays || 1, 'jour')} · vente forcée à 90 jours`, go: { banque: 1 }, compte: 1 });
   for (const st of mine) {
     st.units.forEach((u, i) => { if (u.down > 0) out.push({ k: 'critique', t: `${E.EQUIP[u.type].name} ${E.EQUIP[u.type].tiers[u.tier].n} en panne`, s: `${stationLabel(st.lot)} · intervention dans ${Math.max(1, Math.ceil(u.down / 24))} j`, go: { lot: st.lot, unite: i }, compte: 1 }); });
+    if (st.note != null && st.note < 2.8) { const x = avisExtremes(st); out.push({ k: 'critique', t: `Clients mécontents (★ ${noteTxt(st.note)})`, s: `${stationLabel(st.lot)} · surtout : ${x.pire.n.toLowerCase()}`, go: { lot: st.lot, avis: 1 }, compte: 1 }); }
     if (st.q.portique + st.q.hp >= E.qmaxOf(st)) out.push({ k: 'critique', t: 'File pleine', s: `${stationLabel(st.lot)} · des clients repartent`, go: { lot: st.lot, file: 1 }, compte: 1 });
   }
   for (const o of S.offers) if (S.stations[o.lot]) out.push({ k: 'opportunite', t: 'Parcelle voisine à racheter', s: `${stationLabel(o.lot)} · encore ${pluriel(Math.max(0, o.until - Math.floor(S.d)), 'jour')} · ${fmt(o.price)}`, go: { lot: o.lot, station: 1 }, compte: 1 });
@@ -167,6 +168,7 @@ function alerteGo(i) {
   go('station', g.lot);
   if (g.unite != null) feuilleOpen('unite', { lot: g.lot, i: g.unite });
   else if (g.file) feuilleOpen('file', { lot: g.lot });
+  else if (g.avis) feuilleOpen('avis', { lot: g.lot });
   else if (g.station) feuilleOpen('station', { lot: g.lot });
   else if (g.catalogue) feuilleOpen('catalogue', { lot: g.lot, type: null, tier: null });
 }

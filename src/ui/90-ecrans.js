@@ -36,7 +36,7 @@ FEUILLES.empire = f => {
     const z = E.zoneOf(S, st.lot);
     return `<button class="st-ligne" data-fa="emp-station" data-lot="${st.lot}" data-test="empire-${st.lot}">
       ${vignette(st)}
-      <span class="st-mil"><b class="st-nom">${esc(stationLabel(st.lot))}</b>
+      <span class="st-mil"><b class="st-nom">${esc(stationLabel(st.lot))}${st.note != null ? `<span class="st-note">★ ${noteTxt(st.note)}</span>` : ''}</b>
         <small>Palier ${z.stage + 1} · ${esc(E.STAGES[z.stage].n)}${st.staff ? ' · 1 employé' : ''}</small>
         <span class="st-etat ${e.k}">${picto(e.k, 16)}${esc(e.t)}</span></span>
       <span class="st-ca"><b class="num">${fmt(ca)}</b><small>30 j</small></span>

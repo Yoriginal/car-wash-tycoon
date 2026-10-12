@@ -17,7 +17,16 @@ Format : `MAJEUR.MINEUR.CORRECTIF`
   météo, rivaux, prêts simulés) : 1 heure d'absence = 2 jours de jeu, 60 jours au plus ; ticket
   récapitulatif au retour (jours écoulés, lavages, pannes, CA, variation de trésorerie). Remplace
   l'ancien forfait à mi-régime plafonné à 8 h (24 h d'absence ne valaient que 12 jours de résultat).
-- Sauvegarde au format 4 : migration automatique des parties 1.1 / 2.0, copie de l'ancienne gardée.
+- Satisfaction des clients : note sur 5 par station (façon avis Google, mémoire d'un mois) et
+  5 critères (prix, attente, fiabilité, qualité du lavage, accueil). Les clients parlent : avis
+  écrits, bulle de pensée dans le décor, conseil et bouton vers le bon réglage. La note pèse sur
+  l'affluence (±8 % par étoile autour de 3,5). Remplace l'indicateur « perdus » de la station.
+- Prix habituel selon la gamme : portique 8 / 10 / 12 €, piste HP 4 / 5 / 6 € (Éco / Pro / Premium,
+  avant effet du palier) ; un équipement Premium justifie un panier plus cher. Le premier équipement
+  d'un type fixe le prix à son prix habituel ; les prix existants sont recalés à la mise à jour.
+- Étude d'implantation gardée après l'achat (potentiel daté dans le panneau Station) et
+  renouvelable (« Nouvelle étude ») quand la zone a changé.
+- Sauvegarde au format 5 : migration automatique des parties 1.1 / 2.0, copie de l'ancienne gardée.
 - L'aperçu joue sur une copie de la partie : le jeu principal n'est jamais touché par un moteur
   plus récent ; Réglages → « Repartir de ma partie du jeu ».
 

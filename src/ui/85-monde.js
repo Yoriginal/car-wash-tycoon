@@ -266,26 +266,27 @@ FEUILLES.terrain = ({ lot }) => {
   const comps = Object.values(S.stations).filter(st => E.lotDef(st.lot).zone === z.id && st.lot !== lot);
   const nRiv = comps.filter(st => st.owner !== 'player').length;
   const conc = ['aucune', 'faible', 'moyenne', 'forte'][Math.min(3, comps.length)];
-  const etudie = ls.studied || ls.owner === 'player';
+  const etudie = !!pr.etude;
   const cases = Array.from({ length: l.slots }, () => '<i></i>').join('');
   const file = Array.from({ length: Math.min(l.q, 12) }, () => '<u></u>').join('');
   const tendance = z.pending ? (z.pending.dir > 0 ? 'en hausse' : 'en baisse') : etudie ? trendText(z).toLowerCase() : 'inconnue';
   let corps = `<div class="t-plan"><span class="t-cases">${cases}<span class="t-file">${file}</span></span>
       <span class="t-infos"><b>${pluriel(l.slots, 'emplacement')}</b><small>file de ${l.q} voitures</small><small>${nRiv ? pluriel(nRiv, 'rival') + ' dans la zone' : 'aucun rival dans la zone'}${zd.seasonal ? ' · saisonnier' : ''}</small></span></div>
     ${jaugeTerrain('Potentiel', etudie ? `≈ ${(pr.exact * 30).toLocaleString('fr-FR')} clients/mois` : `${(pr.lo * 30).toLocaleString('fr-FR')} à ${(pr.hi * 30).toLocaleString('fr-FR')} clients/mois`, (etudie ? pr.exact : pr.hi) / 400, etudie ? '' : 'flou')}
+    ${etudie ? `<p class="f-texte t-flou">Étude du ${dateLongue(pr.etude.d)}${etudeVieillie(lot) ? ' : la zone a changé depuis, une nouvelle étude dira où elle en est.' : '.'}</p>` : ''}
     ${jaugeTerrain('Concurrence', conc, comps.length / 3, 'ambre')}
     <div class="t-jauge"><div class="f-ligne"><span>Tendance</span><b>${tendance}</b></div>
       ${z.pending ? `<p class="f-texte">${picto('opportunite', 16)} ${esc(z.pending.signal)}</p>` : etudie ? '' : '<p class="f-texte t-flou">Une étude révèle le potentiel exact et la tendance.</p>'}</div>`;
-  if (etudie) corps += `<p class="f-texte">Prix de référence : portique ${euro(E.refPrice(S, lot, 'portique'))}, piste HP ${euro(E.refPrice(S, lot, 'hp'))}.</p>`;
+  if (etudie) corps += `<p class="f-texte">Prix habituels (gamme Pro) : portique ${euro(E.refPrice(S, lot, 'portique', 1))}, piste HP ${euro(E.refPrice(S, lot, 'hp', 1))}.</p>`;
   if (ls.sale) corps += `<div class="f-offre">${picto('opportunite', 24)}<span><b>Vendu équipé</b><small>${ls.sale.units.map(u => E.EQUIP[u.type].name + ' ' + E.EQUIP[u.type].tiers[u.tier].n).join(', ')}</small></span></div>`;
   let actions = '';
   if (ls.owner === 'player') actions = bouton({ label: 'Voir la station', ic: 'station', fa: 'aller-station', neon: true });
-  else if (ls.owner) corps += `<p class="f-texte">${picto('info', 16)} Propriété de ${esc(ownerName(ls.owner))}. Si elle fait faillite, elle revendra peut-être.</p>`;
+  else if (ls.owner) corps += `<p class="f-texte">${picto('info', 16)} Propriété de ${esc(ownerName(ls.owner))}${S.stations[lot] && S.stations[lot].note != null ? `, notée ★ ${noteTxt(S.stations[lot].note)} par ses clients` : ''}. Si elle fait faillite, elle revendra peut-être.</p>`;
   else {
     const assez = S.cash >= prix;
     const pret = assez ? null : pretPour(prix, 5000);
-    if (!ls.studied) actions += bouton({ label: 'Étudier', ic: 'eye', montant: fmt(E.STUDY_COST), fa: 'etudier', neon: S.cash >= E.STUDY_COST, off: S.cash < E.STUDY_COST, test: 'etudier' });
-    actions += bouton({ label: 'Acheter', ic: 'plus', montant: fmt(prix), fa: 'acheter-terrain', neon: ls.studied && assez, off: !assez, test: 'acheter-terrain' });
+    if (!etudie || etudeVieillie(lot)) actions += bouton({ label: etudie ? 'Nouvelle étude' : 'Étudier', ic: 'eye', montant: fmt(E.STUDY_COST), fa: 'etudier', neon: S.cash >= E.STUDY_COST, off: S.cash < E.STUDY_COST, test: 'etudier' });
+    actions += bouton({ label: 'Acheter', ic: 'plus', montant: fmt(prix), fa: 'acheter-terrain', neon: etudie && !etudeVieillie(lot) && assez, off: !assez, test: 'acheter-terrain' });
     if (pret && !pret.refuse) actions += bouton({ label: 'Acheter avec un prêt', ic: 'loan', montant: `${fmt(pret.mensuel)}/mois`, fa: 'acheter-terrain-pret', neon: !!ls.studied });
     else if (pret) corps += `<p class="f-texte">${picto('critique', 16)} Il te manque ${fmt(prix - Math.max(0, S.cash))} et la banque ne prête que ${fmt(E.creditLimit(S))}.</p>`;
   }

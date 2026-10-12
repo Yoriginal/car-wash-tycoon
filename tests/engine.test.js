@@ -192,4 +192,46 @@ test('absence : les stations tournent vraiment, proportionnellement au temps, av
   noNaN(s2);
 });
 
+console.log('Satisfaction et prix par gamme');
+test('prix de référence selon la gamme : portique 8/10/12 €, piste HP 4/5/6 € (avant palier)', () => {
+  assert.deepEqual(E.EQUIP.portique.tiers.map(t => t.ref), [8, 10, 12]);
+  assert.deepEqual(E.EQUIP.hp.tiers.map(t => t.ref), [4, 5, 6]);
+  const s = E.newGame(); s.cash = 1e6;
+  E.buyUnit(s, 'A', 'hp', 2);
+  assert.equal(E.refPrice(s, 'A', 'hp'), Math.round(6 * E.STAGES[0].ref * 2) / 2);
+  assert.equal(s.stations.A.prices.hp, E.refPrice(s, 'A', 'hp'), 'premier équipement : prix au prix habituel de sa gamme');
+});
+test('migration : les prix gardent le même écart à la référence', () => {
+  const old = fixture();
+  const s = E.migrate(fixture());
+  const st = s.stations.C, o = old.stations.C;
+  const tier = Math.max(...st.units.filter(u => u.type === 'hp').map(u => u.tier));
+  assert.equal(st.prices.hp, Math.round(o.prices.hp * E.EQUIP.hp.tiers[tier].ref / 5 * 2) / 2);
+});
+test('satisfaction : note sur 5, baisse avec un prix abusif et des pannes, pèse sur l\'attractivité', () => {
+  const run = f => { const s = E.newGame(); s.cash = 1e6; E.buyUnit(s, 'A', 'hp', 1); E.buyUnit(s, 'A', 'hp', 1); f(s); E.advanceDays(s, 60); return s.stations.A; };
+  const bien = run(() => {});
+  const cher = run(s => { s.stations.A.prices.hp = 12; });
+  const panne = run(s => { s.stations.A.contract = 0; for (let d = 0; d < 60; d++) s.stations.A.units[0].down = 999; });
+  assert.ok(bien.note >= 1 && bien.note <= 5, 'note ' + bien.note);
+  assert.ok(cher.avis.prix < bien.avis.prix - 1, `prix ${cher.avis.prix} vs ${bien.avis.prix}`);
+  assert.ok(cher.note < bien.note, 'la note baisse avec un prix abusif');
+  assert.ok(panne.avis.pannes < bien.avis.pannes, `pannes ${panne.avis.pannes} vs ${bien.avis.pannes}`);
+  assert.ok(E.reputation({ note: 4.5 }) > 1 && E.reputation({ note: 2 }) < 1);
+  const s = E.migrate(roundtrip(E.newGame())); assert.equal(s.stations.A.note, null);
+});
+
+test('étude : le potentiel reste après l\'achat et se renouvelle', () => {
+  const s = E.newGame(); s.cash = 1e6;
+  assert.ok(E.study(s, 'B').ok);
+  const e1 = E.lotState(s, 'B').etude;
+  assert.ok(e1 && e1.dem > 0 && e1.d === s.d);
+  assert.ok(E.buyLot(s, 'B').ok);
+  assert.deepEqual(E.lotState(s, 'B').etude, e1, 'toujours là après l\'achat');
+  E.advanceDays(s, 40); s.zones.find(z => z.id === 'croix').stage = 2;
+  assert.ok(E.study(s, 'B').ok, 'nouvelle étude possible');
+  const e2 = E.lotState(s, 'B').etude;
+  assert.ok(e2.d > e1.d && e2.stage === 2 && e2.dem > e1.dem);
+});
+
 console.log(`\n${passed} tests OK` + (process.exitCode ? ' — ÉCHECS ci-dessus' : ''));

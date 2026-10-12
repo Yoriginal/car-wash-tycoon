@@ -38,7 +38,7 @@ const ok = (c, m) => { if (c) console.log('  ✓ ' + m); else { console.error(' 
     await pg.waitForTimeout(300); await pg.evaluate(() => window.dispatchEvent(new Event('pagehide')));
     const raw = await pg.evaluate(() => JSON.parse(localStorage.getItem('cwt-save-v3')));
     const bak = await pg.evaluate(() => localStorage.getItem('cwt-backup-v' + 3));
-    ok(raw.v === 4 && raw.years && raw.lots.length > F.lots.length && JSON.parse(bak).d === F.d, 'sauvegarde migrée au format v3 (copie de l\'ancienne gardée)');
+    ok(raw.v === 5 && raw.years && raw.lots.length > F.lots.length && JSON.parse(bak).d === F.d, 'sauvegarde migrée au format v3 (copie de l\'ancienne gardée)');
     await pg.close();
 
     // 2. nouvelle partie : écran titre → première vente

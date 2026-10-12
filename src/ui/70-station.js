@@ -104,6 +104,18 @@ function fileSvg(st, cible) {
   </g>`;
 }
 
+// bulle de pensée d'un client au-dessus du parvis : ce qui l'a marqué (touchable : avis clients)
+function bulleAvisSvg(st, W) {
+  const b = st.note == null ? null : avisBulle(st);
+  if (!b) return '';
+  const txt = b.txt.length > 34 ? b.txt.slice(0, 33) + '…' : b.txt;
+  const w = Math.min(W - 150, 30 + txt.length * 5.4), x = W - w - 10, y = ST.GROUND_Y - 34;
+  return `<g class="bulle-avis${b.mal ? ' mal' : ''}" data-sa="avis" data-test="bulle-avis" role="button" aria-label="Avis client : ${escSvg(b.txt)}">
+    <rect x="${x}" y="${y}" width="${w}" height="26" rx="13" fill="#1B2024"/>
+    <path d="M${x + w - 34} ${y + 25} l6 8 l4 -8 z" fill="#1B2024"/>
+    <g transform="translate(${x + 7},${y + 5}) scale(.67)">${innerSvg(picto(b.mal ? 'critique' : 'ok', 24))}</g>
+    <text x="${x + 26}" y="${y + 17}" font-family="Barlow Condensed" font-weight="600" font-size="11" fill="#F4F0E6">${escSvg(txt)}</text></g>`;
+}
 function queueCarsSvg(st, W) {
   const q = st.q.portique + st.q.hp;
   const step = 46, x0 = 134;
@@ -147,6 +159,7 @@ function stationSceneSvg(lotId) {
     ${emp ? `<g class="employe" data-sa="employe" role="button" aria-label="Employé ${escSvg(emp.name)}" transform="translate(${ST.X0 + bw - 26},${ST.GROUND_Y - 2})"><circle cx="10" cy="6" r="6" fill="#E9C9A8"/><path d="M2 30 V18 Q2 12 10 12 Q18 12 18 18 V30 Z" fill="#14BFAE"/><rect x="4" y="0" width="12" height="4" rx="2" fill="#1B2024"/></g>` : ''}
     <g transform="translate(14,${ST.LANE_Y + 2})">${fileSvg(st, cible)}</g>
     <g class="file-voitures">${queueCarsSvg(st, W)}</g>
+    ${bulleAvisSvg(st, W)}
   </svg>`;
 }
 
@@ -162,7 +175,7 @@ function stationMois(st) {
 function stationKpisHtml(st) {
   const m = stationMois(st);
   return `<div class="kpi2"><span class="ic vert">${ASSETS['icones/car']}</span><span><b class="num" data-live="served">${m.lavages.toLocaleString('fr-FR')}</b><small>lavages</small></span></div>
-    <div class="kpi2"><span class="ic rouge">${ASSETS['icones/carout']}</span><span><b class="num" data-live="lost">${m.perdus.toLocaleString('fr-FR')}</b><small>perdus</small></span></div>
+    <button class="kpi2 kpi-note" data-sa="avis" data-test="kpi-note" aria-label="Avis clients"><span class="ic ambre">${ASSETS['icones/star']}</span><span><b class="num" data-live="note">${noteTxt(noteDe(st))}</b><small>avis</small></span></button>
     <div class="kpi2"><span class="ic ambre">${coin(22)}</span><span><b class="num" data-live="rev">${kfmt(m.rev)}</b><small>CA</small></span></div>
     <div class="kpi2"><span class="ic">${ASSETS['icones/up']}</span><span><b class="num" data-live="net">${kfmt(m.net)}</b><small>résultat</small></span></div>
     <p class="kpis2-l">Sur 30 jours glissants</p>`;
@@ -173,7 +186,7 @@ function stationSig(lotId) {
   const st = S.stations[lotId];
   return [E.slotsOf(st), st.staff, S.offers.some(o => o.lot === lotId), st.prices.portique, st.prices.hp, E.zoneOf(S, lotId).stage,
     st.units.map(u => u.type + u.tier + unitState(st, u) + (u.down > 0 ? Math.ceil(u.down / 24) : '')).join(','),
-    st.q.portique + st.q.hp, JSON.stringify(cibleStation(lotId))].join('|');
+    st.q.portique + st.q.hp, JSON.stringify(cibleStation(lotId)), (avisBulle(st) || {}).txt].join('|');
 }
 function stationViewHtml(lotId) {
   const st = S.stations[lotId];
@@ -189,7 +202,7 @@ function stationLive() {
   const box = $('#scene-svg');
   if (box && box.dataset.sig !== sig) { box.innerHTML = stationSceneSvg(ui.lot); box.dataset.sig = sig; }
   const k = $('#station-kpis');
-  if (k) { const m = stationMois(st); set(k, 'served', m.lavages.toLocaleString('fr-FR')); set(k, 'lost', m.perdus.toLocaleString('fr-FR')); set(k, 'rev', kfmt(m.rev)); set(k, 'net', kfmt(m.net)); }
+  if (k) { const m = stationMois(st); set(k, 'served', m.lavages.toLocaleString('fr-FR')); set(k, 'note', noteTxt(noteDe(st))); set(k, 'rev', kfmt(m.rev)); set(k, 'net', kfmt(m.net)); }
 }
 
 // objets touchés dans la scène : chacun ouvre son panneau
@@ -202,6 +215,7 @@ function stationAct(a, el) {
     case 'file': feuilleOpen('file', { lot }); return true;
     case 'offre': feuilleOpen('station', { lot }); return true;
     case 'employe': feuilleOpen('equipe', { lot }); return true;
+    case 'avis': feuilleOpen('avis', { lot }); return true;
   }
   return false;
 }

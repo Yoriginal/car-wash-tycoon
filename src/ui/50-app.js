@@ -111,10 +111,19 @@
   // ---------------- helpers ----------------
   const ownerName = o => o === 'player' ? 'Toi' : (E.RIVALS.find(r => r.id === o) || {}).name;
   const sectorRevealed = lotId => S.sectors[E.sectorOfLot(lotId)].revealed;
+  // potentiel : la fourchette large (sans étude) est lue en direct ; le chiffre précis est celui
+  // de la dernière étude commandée (photo datée, à renouveler quand la zone change)
   function potRange(lotId) {
     const z = E.zoneOf(S, lotId);
     const d = E.zoneDemand(S, z.id, S.d);
-    return { exact: Math.round(d), lo: Math.round(d * 0.6 / 5) * 5, hi: Math.round(d * 1.4 / 5) * 5 };
+    const e = E.lotState(S, lotId).etude;
+    return { exact: e ? e.dem : Math.round(d), lo: Math.round(d * 0.6 / 5) * 5, hi: Math.round(d * 1.4 / 5) * 5, etude: e || null };
+  }
+  function dateLongue(d) { const x = E.dateOf(d); return `${x.getUTCDate()} ${MOIS[x.getUTCMonth()]} ${x.getUTCFullYear()}`; }
+  // l'étude a-t-elle vieilli ? (palier changé, ou plus de 6 mois)
+  function etudeVieillie(lotId) {
+    const e = E.lotState(S, lotId).etude;
+    return !!e && (E.zoneOf(S, lotId).stage !== e.stage || S.d - e.d > 180);
   }
   function trendText(z) {
     const zd = E.zoneDef(z.id);

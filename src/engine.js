@@ -8,7 +8,7 @@ const E = (() => {
   // SAVE_VERSION : format de sauvegarde. Toute modification de la structure de l'état
   // doit l'incrémenter ET ajouter une étape dans MIGRATIONS (jamais casser une partie).
   const GAME_VERSION = '3.0.0';
-  const SAVE_VERSION = 4;
+  const SAVE_VERSION = 5;
   const MIGRATIONS = {
     // n: state => { ...transforme un état au format n vers n+1... }
     // 3 → 4 (v3) : carte en villes (nouveaux terrains), historique annuel, nom de station,
@@ -20,6 +20,24 @@ const E = (() => {
         s2.day = Object.assign({ deter: 0, cher: 0 }, s2.day);
       }
       seedYears(st);
+    },
+    // 4 → 5 (v3) : prix de référence selon la gamme (Éco 8/4 €, Pro 10/5 €, Premium 12/6 €) et
+    // satisfaction des clients. Les prix en place sont recalés pour garder le même écart à la référence.
+    4: st => {
+      const ANCIEN = { portique: 10, hp: 5 };
+      for (const s2 of Object.values(st.stations)) {
+        for (const t of TYPES) {
+          const us = (s2.units || []).filter(u => u.type === t);
+          if (!us.length || !s2.prices) continue;
+          const tier = Math.max(...us.map(u => u.tier));
+          const k = EQUIP[t].tiers[tier].ref / ANCIEN[t];
+          if (k !== 1) s2.prices[t] = clamp(Math.round(s2.prices[t] * k * 2) / 2, 1, 40);
+        }
+        if (s2.note === undefined) s2.note = null;
+        if (s2.avis === undefined) s2.avis = null;
+      }
+      // études déjà faites : photo du potentiel prise au moment de la mise à jour
+      for (const l of st.lots) if (l.studied && !l.etude) l.etude = snapshotEtude(st, l.id);
     }
   };
 
@@ -32,19 +50,19 @@ const E = (() => {
 
   const EQUIP = {
     portique: {
-      name: 'Portique', slots: 2, share: 0.6, ref: 10, varCost: 1.4, chem: 0.6, repair: 900,
+      name: 'Portique', slots: 2, share: 0.6, varCost: 1.4, chem: 0.6, repair: 900,
       tiers: [
-        { n: 'Éco', price: 45000, cap: 7, attr: 1.0, fail: 5, life: 8 },
-        { n: 'Pro', price: 75000, cap: 8, attr: 1.2, fail: 3, life: 12 },
-        { n: 'Premium', price: 120000, cap: 9, attr: 1.4, fail: 1.5, life: 15 }
+        { n: 'Éco', price: 45000, cap: 7, attr: 1.0, fail: 5, life: 8, ref: 8 },
+        { n: 'Pro', price: 75000, cap: 8, attr: 1.2, fail: 3, life: 12, ref: 10 },
+        { n: 'Premium', price: 120000, cap: 9, attr: 1.4, fail: 1.5, life: 15, ref: 12 }
       ]
     },
     hp: {
-      name: 'Piste HP', slots: 1, share: 0.4, ref: 5, varCost: 0.5, chem: 0.25, repair: 300,
+      name: 'Piste HP', slots: 1, share: 0.4, varCost: 0.5, chem: 0.25, repair: 300,
       tiers: [
-        { n: 'Éco', price: 9000, cap: 5, attr: 1.0, fail: 4, life: 8 },
-        { n: 'Pro', price: 15000, cap: 5, attr: 1.2, fail: 2.5, life: 12 },
-        { n: 'Premium', price: 24000, cap: 6, attr: 1.4, fail: 1.5, life: 15 }
+        { n: 'Éco', price: 9000, cap: 5, attr: 1.0, fail: 4, life: 8, ref: 4 },
+        { n: 'Pro', price: 15000, cap: 5, attr: 1.2, fail: 2.5, life: 12, ref: 5 },
+        { n: 'Premium', price: 24000, cap: 6, attr: 1.4, fail: 1.5, life: 15, ref: 6 }
       ]
     }
   };
@@ -229,8 +247,8 @@ const E = (() => {
       lot: lotId, owner, units: [], chem: 0, contract: 0,
       prices: defaultPrices(s, lotId), staff: null,
       q: { portique: 0, hp: 0 }, cur: { served: { portique: 0, hp: 0 }, cap: { portique: 0, hp: 0 } },
-      day: { served: 0, lost: 0, rev: 0, cost: 0, arr: 0, deter: 0, cher: 0 },
-      hist: [], since: s.day, name: null, years: {}
+      day: { served: 0, lost: 0, rev: 0, cost: 0, arr: 0, deter: 0, cher: 0, h: 0, down: 0, uw: 0, ua: 0 },
+      hist: [], since: s.day, name: null, years: {}, note: null, avis: null
     };
   }
 
@@ -243,9 +261,17 @@ const E = (() => {
   const stationName = (s, lotId) => (s.stations[lotId] && s.stations[lotId].name) || lotDef(lotId).name;
   const sectorOfLot = lotId => zoneDef(lotDef(lotId).zone).sector;
 
-  function refPrice(s, lotId, type) {
+  // prix habituel d'un programme : selon la gamme (la meilleure installée de ce type, Pro par défaut)
+  // et le palier de la zone. Un équipement Premium justifie un panier plus cher.
+  function bestTier(s, lotId, type) {
+    const st = s.stations[lotId];
+    const us = st ? st.units.filter(u => u.type === type) : [];
+    return us.length ? Math.max(...us.map(u => u.tier)) : 1;
+  }
+  function refPrice(s, lotId, type, tier) {
     const z = zoneOf(s, lotId);
-    return Math.round(EQUIP[type].ref * STAGES[z.stage].ref * 2) / 2;
+    const t = tier == null ? bestTier(s, lotId, type) : tier;
+    return Math.round(EQUIP[type].tiers[t].ref * STAGES[z.stage].ref * 2) / 2;
   }
   function defaultPrices(s, lotId) { return { portique: refPrice(s, lotId, 'portique'), hp: refPrice(s, lotId, 'hp') }; }
 
@@ -287,7 +313,40 @@ const E = (() => {
       const best = Math.max(...us.map(u => EQUIP[t].tiers[u.tier].attr));
       a += EQUIP[t].share * best * priceFactor(st.prices[t], refPrice(s, st.lot, t));
     }
-    return a * CHEM[st.chem].attr * d.loc;
+    return a * CHEM[st.chem].attr * d.loc * reputation(st);
+  }
+  // ---------- satisfaction des clients ----------
+  // Une note sur 5 (avis Google) par station, mémoire d'environ un mois, et 5 critères qui disent
+  // ce qui cloche. La note pèse sur l'attractivité : ±8 % par étoile autour de 3,5.
+  const NOTE_DEPART = 3.5, NOTE_MEMOIRE = 0.07;
+  const AVIS_POIDS = { prix: 0.25, attente: 0.25, pannes: 0.2, qualite: 0.2, accueil: 0.1 };
+  const QUALITE_GAMME = [3.0, 3.8, 4.6];
+  function reputation(st) { return 1 + ((st.note == null ? NOTE_DEPART : st.note) - NOTE_DEPART) * 0.08; }
+  // notes du jour (1 à 5) pour chaque critère, à partir de ce que les clients ont vécu
+  function avisDuJour(s, st, deter) {
+    const c5 = v => clamp(v, 1, 5);
+    const types = TYPES.filter(t => st.units.some(u => u.type === t));
+    const pf = types.reduce((a, t) => a + priceFactor(st.prices[t], refPrice(s, st.lot, t)), 0) / types.length;
+    const u = st.day.ua ? st.day.uw / st.day.ua : 0;
+    const vus = st.day.served + st.day.lost + deter;
+    const renonce = vus ? (st.day.lost + deter) / vus : 0;
+    const down = st.day.h ? st.day.down / st.day.h : 0;
+    const usure = st.units.filter(x => x.age > EQUIP[x.type].tiers[x.tier].life * 365 * 0.85).length / st.units.length;
+    const gamme = st.units.reduce((a, x) => a + QUALITE_GAMME[x.tier], 0) / st.units.length;
+    return {
+      prix: c5(4 + (pf - 1) * 6.5),
+      attente: c5(5 - 3.5 * Math.max(0, u - 0.5) - 8 * renonce),
+      pannes: c5(5 - 12 * down),
+      qualite: c5(gamme + (st.chem ? 0.4 : 0) - 1.5 * usure),
+      accueil: st.staff ? 4.6 : 3.4
+    };
+  }
+  function noterJournee(s, st, deter) {
+    if (!st.units.length || !st.day.h) return;
+    const j = avisDuJour(s, st, deter);
+    st.avis = st.avis || { prix: NOTE_DEPART, attente: NOTE_DEPART, pannes: NOTE_DEPART, qualite: NOTE_DEPART, accueil: NOTE_DEPART };
+    for (const k in AVIS_POIDS) st.avis[k] = Math.round((st.avis[k] * (1 - NOTE_MEMOIRE) + j[k] * NOTE_MEMOIRE) * 1000) / 1000;
+    st.note = Math.round(Object.entries(AVIS_POIDS).reduce((a, [k, w]) => a + st.avis[k] * w, 0) * 100) / 100;
   }
   function attractAt(s, st, prices) {
     const keep = st.prices; st.prices = prices;
@@ -373,6 +432,12 @@ const E = (() => {
           if (fill > 0.7) { const b = Math.round(a * 0.3); a -= b; lost += b; }
           st.q[t] += a;
         }
+        // satisfaction : charge vécue par les clients de cette heure (voitures à laver / capacité horaire)
+        const capH = st.units.filter(u => u.down === 0).reduce((a, u) => a + EQUIP[u.type].tiers[u.tier].cap, 0);
+        if (arrivals > 0 && capH > 0) {
+          st.day.uw = (st.day.uw || 0) + arrivals * Math.min(3, (st.q.portique + st.q.hp) / capH);
+          st.day.ua = (st.day.ua || 0) + arrivals;
+        }
         // capacité
         for (const t of TYPES) {
           const cap = st.units.filter(u => u.type === t && u.down === 0).reduce((a, u) => a + EQUIP[t].tiers[u.tier].cap, 0);
@@ -397,6 +462,12 @@ const E = (() => {
         }
         st.day.lost += lost;
       });
+    }
+    // satisfaction : heures d'ouverture et part des postes en panne
+    for (const st of stations) {
+      if (!st.units.length) continue;
+      st.day.h = (st.day.h || 0) + 1;
+      st.day.down = (st.day.down || 0) + st.units.filter(u => u.down > 0).length / st.units.length;
     }
   }
 
@@ -423,13 +494,14 @@ const E = (() => {
       const deter = Math.round(st.day.deter || 0), cher = Math.round(st.day.cher || 0);
       st.hist.push({ rev: Math.round(st.day.rev), served: st.day.served, lost: st.day.lost, cost: Math.round(st.day.cost), deter, cher });
       if (st.hist.length > 60) st.hist.shift();
+      noterJournee(s, st, deter);
       if (st.owner === 'player') {
         const y = yearOf(s.d);
         const sy = (st.years = st.years || {})[y] = st.years[y] || { rev: 0, served: 0, perdus: 0 };
         sy.rev += Math.round(st.day.rev); sy.served += st.day.served; sy.perdus += st.day.lost + deter + cher;
         jour.served += st.day.served; jour.perdus += st.day.lost + deter + cher;
       }
-      st.day = { served: 0, lost: 0, rev: 0, cost: 0, arr: 0, deter: 0, cher: 0 };
+      st.day = { served: 0, lost: 0, rev: 0, cost: 0, arr: 0, deter: 0, cher: 0, h: 0, down: 0, uw: 0, ua: 0 };
       // vieillissement et pannes
       for (const u of st.units) {
         u.age += 1;
@@ -716,12 +788,18 @@ const E = (() => {
     log(s, `${SECTORS[sectorId].name} reconnue : ses terrains apparaissent sur la carte.`, 'info');
     return { ok: true };
   }
+  // étude d'implantation : photo du potentiel à la date de l'étude ; on peut la renouveler
+  function snapshotEtude(s, lotId) {
+    const z = zoneOf(s, lotId);
+    return { d: Math.floor(s.d), dem: Math.round(zoneDemand(s, z.id, s.d)), stage: z.stage };
+  }
   function study(s, lotId) {
     const l = lotState(s, lotId);
-    if (l.studied) return { ok: false, msg: 'Déjà étudié' };
     if (s.cash < STUDY_COST) return { ok: false, msg: 'Trésorerie insuffisante' };
+    const nouvelle = !!l.etude;
     s.cash -= STUDY_COST; s.today.capex += STUDY_COST; l.studied = true;
-    log(s, `Étude d'implantation livrée : ${lotDef(lotId).name}.`, 'info');
+    l.etude = snapshotEtude(s, lotId);
+    log(s, `${nouvelle ? 'Nouvelle étude' : "Étude d'implantation"} livrée : ${stationName(s, lotId)}.`, 'info');
     return { ok: true };
   }
   function buyLot(s, lotId) {
@@ -742,7 +820,9 @@ const E = (() => {
     if (freeSlots(st) < e.slots) return { ok: false, msg: "Pas assez d'emplacements libres" };
     if (s.cash < t.price) return { ok: false, msg: 'Trésorerie insuffisante' };
     s.cash -= t.price; s.today.capex += t.price;
+    const premier = !st.units.some(u => u.type === type);
     st.units.push(unit(type, tier));
+    if (premier) st.prices[type] = refPrice(s, lotId, type);
     log(s, `${e.name} ${t.n} installé à ${stationName(s, lotId)}.`, 'good');
     return { ok: true };
   }
@@ -962,10 +1042,13 @@ const E = (() => {
       st2.hist = st2.hist || [];
       st2.prices = st2.prices || defaultPrices(st, st2.lot);
       if (st2.name === undefined) st2.name = null;
+      if (st2.note === undefined) st2.note = null;
+      if (st2.avis === undefined) st2.avis = null;
       st2.years = st2.years || {};
       st2.day.deter = st2.day.deter || 0; st2.day.cher = st2.day.cher || 0;
     }
     for (const l of LOTS) if (!st.lots.some(x => x.id === l.id)) st.lots.push({ id: l.id, owner: null, studied: false, sale: null });
+    for (const l of st.lots) if (l.studied && !l.etude) l.etude = snapshotEtude(st, l.id);
     st.years = st.years || {};
     return st;
   }
@@ -982,7 +1065,7 @@ const E = (() => {
     reveal, study, buyLot, buyUnit, sellUnit, sellStation, takeOffer, hire, assign, unassign, fire,
     patrimoine, debt, avgRev, avgNet, creditLimit, loanRate, monthlyPay, borrow, repay, offline,
     log, fmt, checkObjectives, title, priceFactor, dayMult,
-    stationName, renameStation, yearOf, attractAt
+    stationName, renameStation, yearOf, attractAt, reputation, avisDuJour, AVIS_POIDS, NOTE_DEPART
   };
 })();
 if (typeof module !== 'undefined') module.exports = E;
